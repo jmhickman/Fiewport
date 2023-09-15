@@ -13,45 +13,52 @@ module DomainSearcher =
     /// <summary>
     /// <para>
     /// Convenience function to create an empty DirectorySearcherConfig, ready to be manipulated into
-    /// other specific search setups using `with`:
+    /// other specific search setups like:
     /// </para>
     /// <code>
     /// let dSearch = defaultDirectorySearcher ()
-    /// </code>
-    /// <code>
-    /// let personSearch = {dSearch with filter = "(&amp;(objectCategory=person\))" }
+    /// let personSearch = {dSearch with filter = "(&amp;(objectCategory=person))" }
     /// </code>
     /// </summary>    
-    let defaultDirectorySearcher () = {properties = [||]; filter = ""; scope = SearchScope.Subtree }
+    let public defaultDirectorySearcher () = {properties = [||]; filter = ""; scope = SearchScope.Subtree }
     
     ///<summary>
     ///<para>
     /// Creates a connection to the specified LDAP endpoint at the specified path.
-    /// Generally, this should be the FDQN: "LDAP://somedomain.tld".
+    /// Generally, this should be the FDQN:
+    /// <code>LDAP://somedomain.tld</code>
+    /// or
+    /// <code>LDAP://somdomain.tld/CN=Some,CN=Container,DC=somedomain,DC=tld</code>
     /// </para>
-    /// <remarks>
-    /// Unless there is a specific reason to, it's  best to connect at the 'rootmost' endpoint rather
-    /// than deeper into the LDAP hierarchy, in order to avoid missing search results.
-    /// </remarks>
+    /// <para>
+    /// The latter form simultaneously allows non-domain-joined computers to query while allowing the connection
+    /// to live further down the object hierarchy. If the machine you're using isn't domain-joined, a connection
+    /// string like
+    /// <code>LDAP://CN=Some,CN=Container,DC=somedomain,DC=tld</code>
+    /// will not work.
+    /// </para>
+    /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
     /// </summary>
-    let getDomainConnection lDAPEndpoint username password =
+    let public getDomainConnection lDAPEndpoint username password =
         new DirectoryEntry(lDAPEndpoint, username, password)
 
-    
+
     /// 
-    /// Creates a DirectorySearcher using an existing connection to an LDAP endpoint.
-    let getDomainSearcher config domain =
+    /// <summary>Creates a DirectorySearcher using an existing connection to an LDAP endpoint.</summary>
+    /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
+    let public getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
     
 
     ///
     /// <summary>
-    /// This function unboxes values from a SearchResult where they are a single value, and sticks them in
-    /// an ADDataType.
+    /// This function unboxes values from a SearchResult and sticks them in an ADDataType.
     /// </summary>
-    /// <remarks> We don't test for &lt;= 0 because we only enter this function if Contains() comes back with true.</remarks>
+    /// <remarks> We don't test for `count &lt;= 0` because we only enter this function if SearchResult.Properties.Contains()
+    /// comes back with true.
+    /// </remarks>
     /// 
-    let unboxLDAPValue attrName (searchResult: SearchResult) =
+    let private unboxLDAPValue attrName (searchResult: SearchResult) =
         let items = searchResult.Properties.Item(attrName)
         let count = items.Count
         let item = items.Item(0)
@@ -65,7 +72,8 @@ module DomainSearcher =
             | x when x = typeof<string> -> unbox<string> item |> ADString
             | x when x = typeof<DateTime> -> unbox<DateTime> item |> ADDateTime
             | x when x = typeof<byte array> -> unbox<byte array> item |> ADBytes
-            | _ -> "hit singleton type that didn't match: " + attrName |> ADString
+            | x when x = typeof<bool> -> unbox<bool> item |> ADBool
+            | _ -> "hit singleton type that didn't match: " + detectedType.ToString() |> ADString
         | _ ->
             match detectedType with
             | x when x = typeof<DateTime> ->
@@ -80,15 +88,21 @@ module DomainSearcher =
                 |> Seq.map unbox<string>
                 |> List.ofSeq
                 |> ADStrings
-            | _ -> "hit collection type that didn't match: " + attrName |> ADString               
+            | x when x = typeof<bool> ->
+                searchResult.Properties.Item(attrName)
+                |> Seq.cast<bool>
+                |> Seq.map unbox<bool>
+                |> List.ofSeq
+                |> ADBoolList
+            | _ -> "hit collection type that didn't match: " + detectedType.ToString() |> ADString               
 
     
     ///
-    /// I might toss this, not sure it's worth the loc.
-    let stripObjsAndEmit (map: Map<string, ADDataTypes>) =
+    /// I might toss this, not sure it's worth the loc. Removes the three record attrs from the Map.
+    let private stripObjsAndEmit (map: Map<string, ADDataTypes>) =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
-        let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes
+        let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)
         ["objectClass"; "objectCategory"; "objectGUID"]
         |> List.fold (fun (lessMap: Map<string, ADDataTypes>) prop -> lessMap.Remove prop ) map
         |> fun map -> {objectClass = objcls; objectCategory = objcat ; objectGUID = objguid; LDAPData = map }
@@ -99,7 +113,7 @@ module DomainSearcher =
     /// in the given SearchResult.
     /// </summary>
     /// 
-    let LDAPCoercer (searchResult: SearchResult) =
+    let private LDAPCoercer (searchResult: SearchResult) =
         ADSIAttributes
         |> List.filter searchResult.Properties.Contains 
         |> List.fold(fun mapData attr ->
@@ -110,5 +124,5 @@ module DomainSearcher =
     
     ///
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
-    let createLDAPSearchResults (results: SearchResultCollection) = 
+    let public createLDAPSearchResults (results: SearchResultCollection) = 
         [for item in results do yield item] |> List.map LDAPCoercer

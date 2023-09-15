@@ -6,11 +6,11 @@ module ADData =
     
      ///
      /// <summary>
-     /// An object collecting some methods for working with ADDataTypes.
+     /// An object that collects some static methods for working with ADDataTypes.
      /// </summary>
      /// <remarks>
-     /// These have no type safety, so if you feed a string into an Int unwrapper,
-     /// you're just going to get a 0.
+     /// These have no type safety. If you feed a string into an Int unwrapper,
+     /// you're just going to get a 0, and so on.
      /// </remarks>
      /// 
      type ADData = class end

@@ -6,33 +6,38 @@ module LDAPRecords =
     
     ///
     /// Useful for simply enumerating the attributes that were found on a particular search result.
-    let returnLDAPDataKeys (searchResult: LDAPSearchResult) =
+    let public returnLDAPDataKeys (searchResult: LDAPSearchResult) =
         [for key in searchResult.LDAPData.Keys do yield key]
 
 
     ///
     /// Test a specific LDAPSearchResult for the existence of a specific attribute
-    let returnLDAPDataContainsAttr attribute (searchResult: LDAPSearchResult) =
+    let public returnLDAPDataContainsAttr attribute (searchResult: LDAPSearchResult) =
         searchResult.LDAPData.ContainsKey(attribute)
         
 
+    // These should probably move to their own module
+    // need one for
+    // GPLink (GUID) '(gplink=)'
+    // GPO ID (GUID)
+    
     ///
     /// Filter a List of LDAPSearchResults by attribute
-    let filterLDAPDataListForAttr attribute (searchResults: LDAPSearchResult list) =
+    let public filterLDAPDataListForAttr attribute (searchResults: LDAPSearchResult list) =
         searchResults
         |> List.filter (fun p -> p.LDAPData.ContainsKey attribute)
         
 
     ///
     /// Filter a List of LDAPSearchResults by a specific `objectClass` value 
-    let filterLDAPSearchResultForObjectClass filter (searchResults: LDAPSearchResult list) =
+    let public filterLDAPSearchResultForObjectClass filter (searchResults: LDAPSearchResult list) =
         searchResults
         |> List.filter (fun p -> p.objectClass = filter)
         
         
     ///
     /// Filter a List of LDAPSearchResults by a specific `objectCategory` value
-    let filterLDAPSearchResultForObjectCategory filter (searchResults: LDAPSearchResult list) =
+    let public filterLDAPSearchResultForObjectCategory filter (searchResults: LDAPSearchResult list) =
         searchResults
         |> List.filter (fun p -> p.objectCategory = filter)    
         
@@ -40,7 +45,7 @@ module LDAPRecords =
     ///
     /// Filter a List of LDAPSearchResults by a specific `objectGUID` value. Theoretically this should yield
     /// a singleton, but you never know with AD so leaving it as a list.
-    let filterLDAPSearchResultForObjectGUID filter (searchResults: LDAPSearchResult list) =
+    let public filterLDAPSearchResultForObjectGUID filter (searchResults: LDAPSearchResult list) =
         searchResults
         |> List.filter (fun p -> p.objectGUID = filter)
         
@@ -54,10 +59,11 @@ module LDAPRecords =
     /// </remarks> 
     /// <summary>
     /// This list will serve as the primary iterator that SearchResults will be
-    /// queried for when creating LDAPRecords.
+    /// queried for when creating LDAPRecords. Since these words will form the Keys in the Map data, note they are
+    /// case sensitive. Actual LDAP queries aren't.
     /// </summary>
     /// 
-    let ADSIAttributes =
+    let public  ADSIAttributes =
         [ "accountExpires"
           "accountNameHistory"
           "aCSAggregateTokenRatePerUser"

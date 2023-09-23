@@ -1,6 +1,7 @@
 ﻿namespace Fiewport
 
 open System.DirectoryServices
+open System.DirectoryServices.ActiveDirectory
 open Types
 open DomainSearcher
 

@@ -1,5 +1,7 @@
 ﻿namespace Fiewport
 
+open System.DirectoryServices.ActiveDirectory
+
 [<AutoOpen>]
 module Types =
     open System
@@ -67,10 +69,30 @@ module Types =
           LDAPData: Map<string, ADDataTypes> }
         
         
+    ///
+    /// <summary>
+    /// A mild attempt to encode the various types of errors observed for LDAP searches
+    /// during development. I'm sure there are more.
+    /// </summary>
     type LDAPSearcherError =
         | ServerConnectionError of string
         | UnknownError80005000 of string
         | InvalidDNSyntax of string
         | NoSuchObject of string
         | OtherError of string
-        
+
+
+    ///
+    /// A 'lightweight' (lazy) way to capture some Domain details without devolving into
+    /// mutually recursive record definitions. Because no one has time for that.
+    type ActiveDirectoryDomain =
+        { children: string list
+          domainControllers: string list
+          domainMode: DomainMode
+          domainModeLevel: int
+          forest: string
+          infrastructureRoleOwner: string
+          name: string
+          parent: string option
+          pdcRoleOwner: string
+          ridRoleOwner: string }

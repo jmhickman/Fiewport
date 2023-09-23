@@ -1,5 +1,6 @@
 ﻿namespace Fiewport
 
+[<AutoOpen>]
 module Types =
     open System
 
@@ -30,10 +31,17 @@ module Types =
     /// All other attributes will be omitted, even if they are present.</param>
     /// <param name="filter">The LDAP filter string. Not case sensitive</param>
     /// <param name="scope">One of the three values of the enum SearchScope</param>
+    /// <param name="ldapDomain">The AD to attach to, in the form "LDAP://domain.tld" or
+    /// "LDAP://domain.tld/CN=Some,CN=Container,DC=domain,DC=tld"</param>
+    /// <param name="username">Username used to connect to the AD</param>
+    /// <param name="password">Password used to connect to the AD</param>
     type DirectorySearcherConfig =
         { properties: string array
           filter: string
-          scope: System.DirectoryServices.SearchScope }
+          scope: System.DirectoryServices.SearchScope
+          ldapDomain: string
+          username: string
+          password: string }
     
     
     /// <summary>
@@ -48,7 +56,9 @@ module Types =
     /// frictions are reduced though, and it doesn't prevent creating ad-hoc "verifiedThing" types if required.
     /// </remarks> 
     /// </summary>
-    ///  
+    ///
+    // consider adding a property that includes the search values in the record?
+    // That seems like a good idea, to help easily group which queries came from what data
     type LDAPSearchResult =
         { objectClass: string list
           objectCategory: string

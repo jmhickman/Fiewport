@@ -49,6 +49,8 @@ module LDAPRecords =
         searchResults
         |> List.filter (fun p -> p.objectGUID = filter)
         
+    
+    
         
     ///
     /// <remarks>

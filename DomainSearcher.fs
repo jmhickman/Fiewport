@@ -8,19 +8,7 @@ open ADData
 open LDAPRecords
 
 [<AutoOpen>]
-module DomainSearcher =    
-    
-    /// <summary>
-    /// <para>
-    /// Convenience function to create an empty DirectorySearcherConfig, ready to be manipulated into
-    /// other specific search setups like:
-    /// </para>
-    /// <code>
-    /// let dSearch = defaultDirectorySearcher ()
-    /// let personSearch = {dSearch with filter = "(&amp;(objectCategory=person))" }
-    /// </code>
-    /// </summary>    
-    let public defaultDirectorySearcher () = {properties = [||]; filter = ""; scope = SearchScope.Subtree }
+module DomainSearcher = 
     
     ///<summary>
     ///<para>
@@ -39,17 +27,25 @@ module DomainSearcher =
     /// </para>
     /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
     /// </summary>
-    let public getDomainConnection lDAPEndpoint username password =
+    let internal getDomainConnection lDAPEndpoint username password =
         new DirectoryEntry(lDAPEndpoint, username, password)
 
 
     /// 
     /// <summary>Creates a DirectorySearcher using an existing connection to an LDAP endpoint.</summary>
     /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
-    let public getDomainSearcher config domain =
+    let internal getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
     
 
+    ///
+    /// <summary>
+    /// Helper to convert a TLD in the connection style into the LDAP style
+    /// </summary>
+    let internal deriveDistinguishedString (domainTld: string) =
+        domainTld[7..].Split('.')
+        |> Array.map (fun ss -> $"""DC={ss},""")
+        |> fun s -> (String.Join("", s)).Trim(',')
     ///
     /// <summary>
     /// This function unboxes values from a SearchResult and sticks them in an ADDataType.
@@ -124,5 +120,5 @@ module DomainSearcher =
     
     ///
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
-    let public createLDAPSearchResults (results: SearchResultCollection) = 
+    let internal createLDAPSearchResults (results: SearchResultCollection) = 
         [for item in results do yield item] |> List.map LDAPCoercer

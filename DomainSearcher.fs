@@ -101,7 +101,7 @@ module DomainSearcher =
         let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)
         ["objectClass"; "objectCategory"; "objectGUID"]
         |> List.fold (fun (lessMap: Map<string, ADDataTypes>) prop -> lessMap.Remove prop ) map
-        |> fun map -> {objectClass = objcls; objectCategory = objcat ; objectGUID = objguid; LDAPData = map }
+        |> fun map -> {objectClass = objcls; objectCategory = objcat ; objectGUID = objguid; LDAPSearcherError = None; LDAPData = map }
         
     ///
     /// <summary>
@@ -118,7 +118,24 @@ module DomainSearcher =
         |> stripObjsAndEmit
     
     
+    let decodeLDAPSearcherError error =
+        match error with
+        | ServerConnectionError s -> "ServerConnectionError: " + s
+        | UnknownError80005000 s -> "UnknownError80005000: " + s
+        | NoSuchObject s -> "NoSuchObject: " + s
+        | InvalidDNSyntax s -> "InvalidDNSyntax: " + s
+        | OtherError s -> "OtherError: " + s
+    
+    
     ///
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
-    let internal createLDAPSearchResults (results: SearchResultCollection) = 
-        [for item in results do yield item] |> List.map LDAPCoercer
+    let internal createLDAPSearchResults (results: Result<SearchResultCollection, LDAPSearcherError>) = 
+        match results with
+            | Ok results' ->
+                try
+                    [for item in results' do yield item] |> List.map LDAPCoercer
+                with exn ->
+                    [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; LDAPSearcherError = exn.Message |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
+            | Error e ->
+                [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; LDAPSearcherError = decodeLDAPSearcherError e |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
+             

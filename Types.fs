@@ -63,4 +63,14 @@ module Types =
         { objectClass: string list
           objectCategory: string
           objectGUID: Guid
+          LDAPSearcherError: string option
           LDAPData: Map<string, ADDataTypes> }
+        
+        
+    type LDAPSearcherError =
+        | ServerConnectionError of string
+        | UnknownError80005000 of string
+        | InvalidDNSyntax of string
+        | NoSuchObject of string
+        | OtherError of string
+        

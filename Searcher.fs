@@ -13,7 +13,20 @@ module Searcher =
         let domain, config = domainAndConfig
         getDomainSearcher config domain
         
-    let findAll (searcher: DirectorySearcher) = searcher.FindAll()
+    let findAll (searcher: DirectorySearcher) =
+        try
+            searcher.FindAll() |> Ok
+        with
+            exn ->
+                match exn with
+                | x when x.Message = "The server is not operational." -> x.Message |> ServerConnectionError |> Error
+                | x when x.Message = "Unknown error (0x80005000)" -> x.Message |> UnknownError80005000 |> Error
+                | x when x.Message = "An invalid dn syntax has been specified." -> x.Message |> InvalidDNSyntax |> Error
+                | x when x.Message = "There is no such object on the server." -> x.Message |> NoSuchObject |> Error
+                | x -> x.Message |> OtherError |> Error
+                
+    
+    // let findAll2 (searcher: DirectorySearcher) = searcher.FindAll()
     
     let doSearch = configureDomainConnection >> configureSearcher >> findAll
     

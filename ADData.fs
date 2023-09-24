@@ -1,6 +1,8 @@
 ﻿namespace Fiewport
 
 open Types
+open System
+open System.Security.AccessControl
 
 module ADData =
     
@@ -39,7 +41,7 @@ module ADData =
          static member unwrapADDateTime adDateTime =
              match adDateTime with
              | ADDateTime x -> x
-             | _ -> System.DateTime.UnixEpoch
+             | _ -> DateTime.UnixEpoch
          
          static member unwrapADStrings adStrings =
              match adStrings with
@@ -49,4 +51,8 @@ module ADData =
          static member unwrapADDateTimes unwrapADDateTime =
              match unwrapADDateTime with
              | ADDateTimes x -> x
-             | _ -> [System.DateTime.UnixEpoch]             
+             | _ -> [DateTime.UnixEpoch]
+
+         static member readSecurityDescriptor bytes =
+            let rdr = RawSecurityDescriptor(bytes, 0)
+            rdr.GetSddlForm(AccessControlSections.All)

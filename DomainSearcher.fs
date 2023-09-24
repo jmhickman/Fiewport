@@ -7,7 +7,6 @@ open Types
 open ADData
 open LDAPRecords
 
-[<AutoOpen>]
 module DomainSearcher = 
     
     ///<summary>
@@ -27,7 +26,7 @@ module DomainSearcher =
     /// </para>
     /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
     /// </summary>
-    let internal getDomainConnection lDAPEndpoint username password =
+    let internal getDomainConnection lDAPEndpoint username password = 
         new DirectoryEntry(lDAPEndpoint, username, password)
 
 
@@ -36,7 +35,10 @@ module DomainSearcher =
     /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
     let internal getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
-    
+        |> fun ds ->
+            ds.SecurityMasks <- SecurityMasks.Dacl ||| SecurityMasks.Sacl ||| SecurityMasks.Group
+            ds        
+
 
     ///
     /// <summary>
@@ -45,7 +47,9 @@ module DomainSearcher =
     let internal deriveDistinguishedString (domainTld: string) =
         domainTld[7..].Split('.')
         |> Array.map (fun ss -> $"""DC={ss},""")
-        |> fun s -> (String.Join("", s)).Trim(',')
+        |> fun s -> String.Join("", s).Trim(',')
+
+
     ///
     /// <summary>
     /// This function unboxes values from a SearchResult and sticks them in an ADDataType.
@@ -99,10 +103,14 @@ module DomainSearcher =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
         let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)
-        ["objectClass"; "objectCategory"; "objectGUID"]
+        let mutable ntsd = ""
+        if map.ContainsKey "nTSecurityDescriptor" then
+            ntsd <- map.Item "nTSecurityDescriptor" |> ADData.unwrapADBytes |> ADData.readSecurityDescriptor
+        ["objectClass"; "objectCategory"; "objectGUID"; "nTSecurityDescriptor"]
         |> List.fold (fun (lessMap: Map<string, ADDataTypes>) prop -> lessMap.Remove prop ) map
-        |> fun map -> {objectClass = objcls; objectCategory = objcat ; objectGUID = objguid; LDAPSearcherError = None; LDAPData = map }
-        
+        |> fun map -> {objectClass = objcls; objectCategory = objcat ; objectGUID = objguid; nTSecurityDescriptor = ntsd; LDAPSearcherError = None; LDAPData = map }
+    
+    
     ///
     /// <summary>
     /// Processes SearchResults into LDAPSearchResults, placing in a Map only the attributes that appeared
@@ -135,7 +143,6 @@ module DomainSearcher =
                 try
                     [for item in results' do yield item] |> List.map LDAPCoercer
                 with exn ->
-                    [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; LDAPSearcherError = exn.Message |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
+                    [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; nTSecurityDescriptor =  ""; LDAPSearcherError = exn.Message |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
             | Error e ->
-                [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; LDAPSearcherError = decodeLDAPSearcherError e |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
-             
+                [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; nTSecurityDescriptor =  ""; LDAPSearcherError = decodeLDAPSearcherError e |> Some; LDAPData = Map.empty<string,ADDataTypes> }]

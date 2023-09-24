@@ -1,7 +1,6 @@
 ﻿namespace Fiewport
 
 open System.DirectoryServices
-open System.DirectoryServices.ActiveDirectory
 open Types
 open DomainSearcher
 
@@ -38,7 +37,6 @@ module Searcher =
     ///
     /// Composed pipeline of 'doing the search.'
     let doSearch = configureDomainConnection >> configureSearcher >> findAll
-    
     
     ///
     /// <summary>

@@ -1,5 +1,23 @@
+# Default ignored files
+/shelf/
+/workspace.xml
 bin/
 obj/
 /packages/
+# Rider ignored files
 riderModule.iml
 /_ReSharper.Caches/
+/projectSettingsUpdater.xml
+/.idea.Fiewport.iml
+/modules.xml
+/contentModel.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+.idea/
+Fiewport.sln.DotSettings
+Fiewport.sln.DotSettings.user
+Fiewport_steps.md
+WorkingScript.fsx

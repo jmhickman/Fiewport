@@ -11,7 +11,11 @@
         <Compile Include="Types.fs" />
         <Compile Include="ADData.fs" />
         <Compile Include="LDAPRecords.fs" />
+        <Compile Include="Self.fs" />
+        <Compile Include="Mold.fs" />
+        <Compile Include="Filter.fs" />
         <Compile Include="DomainSearcher.fs" />
+        <Compile Include="Searcher.fs" />
         <Content Include="README.md" />
         <Content Include="LICENSE" />
         <None Include="WorkingScript.fsx" />
@@ -19,6 +23,7 @@
 
     <ItemGroup>
       <PackageReference Include="System.DirectoryServices" Version="7.0.1" />
+      <PackageReference Include="System.Security.AccessControl" Version="6.0.0" />
     </ItemGroup>
 
 </Project>

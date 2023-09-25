@@ -65,6 +65,7 @@ module Types =
         { objectClass: string list
           objectCategory: string
           objectGUID: Guid
+          nTSecurityDescriptor: string
           LDAPSearcherError: string option
           LDAPData: Map<string, ADDataTypes> }
         

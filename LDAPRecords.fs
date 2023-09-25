@@ -65,7 +65,7 @@ module LDAPRecords =
     /// case sensitive. Actual LDAP queries aren't.
     /// </summary>
     /// 
-    let public  ADSIAttributes =
+    let public ADSIAttributes =
         [ "accountExpires"
           "accountNameHistory"
           "aCSAggregateTokenRatePerUser"

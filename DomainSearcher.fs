@@ -36,7 +36,8 @@ module DomainSearcher =
     let internal getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
         |> fun ds ->
-            ds.SecurityMasks <- SecurityMasks.Dacl ||| SecurityMasks.Sacl ||| SecurityMasks.Group
+            ds.SecurityMasks <-
+                SecurityMasks.Dacl ||| SecurityMasks.Sacl ||| SecurityMasks.Group ||| SecurityMasks.Owner
             ds        
 
 

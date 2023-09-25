@@ -8,17 +8,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Types.fs" />
-        <Compile Include="ADData.fs" />
-        <Compile Include="LDAPRecords.fs" />
-        <Compile Include="Self.fs" />
-        <Compile Include="Mold.fs" />
-        <Compile Include="Filter.fs" />
-        <Compile Include="DomainSearcher.fs" />
-        <Compile Include="Searcher.fs" />
         <Content Include="README.md" />
         <Content Include="LICENSE" />
         <None Include="WorkingScript.fsx" />
+        <Compile Include="src\Types.fs" />
+        <Compile Include="src\ADData.fs" />
+        <Compile Include="src\LDAPRecords.fs" />
+        <Compile Include="src\Self.fs" />
+        <Compile Include="src\Mold.fs" />
+        <Compile Include="src\Filter.fs" />
+        <Compile Include="src\DomainSearcher.fs" />
+        <Compile Include="src\Searcher.fs" />
     </ItemGroup>
 
     <ItemGroup>

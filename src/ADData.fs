@@ -1,8 +1,10 @@
 ﻿namespace Fiewport
 
 open Types
+open LDAPConstants
 open System
 open System.Security.AccessControl
+open System.DirectoryServices.AccountManagement
 
 module ADData =
     
@@ -56,3 +58,8 @@ module ADData =
          static member readSecurityDescriptor bytes =
             let rdr = RawSecurityDescriptor(bytes, 0)
             rdr.GetSddlForm(AccessControlSections.All)
+            
+         static member readUserAccountControl bits =
+             [for i in 0..31 do if ((bits >>> i) &&& 1) = 1 then yield uacPropertyFlags[i]]
+             |> String.concat ", "
+             |> fun s -> $"{bits} -> {s}"

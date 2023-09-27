@@ -2,55 +2,35 @@
 
 open Types
 
-module LDAPRecords =
+module LDAPConstants =
     
-    ///
-    /// Useful for simply enumerating the attributes that were found on a particular search result.
-    let public returnLDAPDataKeys (searchResult: LDAPSearchResult) =
-        [for key in searchResult.LDAPData.Keys do yield key]
-
-
-    ///
-    /// Test a specific LDAPSearchResult for the existence of a specific attribute
-    let public returnLDAPDataContainsAttr attribute (searchResult: LDAPSearchResult) =
-        searchResult.LDAPData.ContainsKey(attribute)
-        
-
-    // These should probably move to their own module
-    // need one for
-    // GPLink (GUID) '(gplink=)'
-    // GPO ID (GUID)
-    
-    ///
-    /// Filter a List of LDAPSearchResults by attribute
-    let public filterLDAPDataListForAttr attribute (searchResults: LDAPSearchResult list) =
-        searchResults
-        |> List.filter (fun p -> p.LDAPData.ContainsKey attribute)
-        
-
-    ///
-    /// Filter a List of LDAPSearchResults by a specific `objectClass` value 
-    let public filterLDAPSearchResultForObjectClass filter (searchResults: LDAPSearchResult list) =
-        searchResults
-        |> List.filter (fun p -> p.objectClass = filter)
-        
-        
-    ///
-    /// Filter a List of LDAPSearchResults by a specific `objectCategory` value
-    let public filterLDAPSearchResultForObjectCategory filter (searchResults: LDAPSearchResult list) =
-        searchResults
-        |> List.filter (fun p -> p.objectCategory = filter)    
-        
-
-    ///
-    /// Filter a List of LDAPSearchResults by a specific `objectGUID` value. Theoretically this should yield
-    /// a singleton, but you never know with AD so leaving it as a list.
-    let public filterLDAPSearchResultForObjectGUID filter (searchResults: LDAPSearchResult list) =
-        searchResults
-        |> List.filter (fun p -> p.objectGUID = filter)
-        
-    
-    
+    let uacPropertyFlags =
+        [ "SCRIPT";
+          "ACCOUNTDISABLE";
+          "RESERVED";
+          "HOMEDIR_REQUIRED";
+          "LOCKOUT";
+          "PASSWD_NOTREQD";
+          "PASSWD_CANT_CHANGE";
+          "ENCRYPTED_TEXT_PWD_ALLOWED";
+          "TEMP_DUPLICATE_ACCOUNT";
+          "NORMAL_ACCOUNT";
+          "RESERVED";
+          "INTERDOMAIN_TRUST_ACCOUNT";
+          "WORKSTATION_TRUST_ACCOUNT";
+          "SERVER_TRUST_ACCOUNT";
+          "RESERVED";
+          "RESERVED";
+          "DONT_EXPIRE_PASSWORD";
+          "MNS_LOGON_ACCOUNT";
+          "SMARTCARD_REQUIRED";
+          "TRUSTED_FOR_DELEGATION";
+          "NOT_DELEGATED";
+          "USE_DES_KEY_ONLY";
+          "DONT_REQ_PREAUTH";
+          "PASSWORD_EXPIRED";
+          "TRUSTED_TO_AUTH_FOR_DELEGATION";
+          "PARTIAL_SECRETS_ACCOUNT" ]
         
     ///
     /// <remarks>

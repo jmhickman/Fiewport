@@ -70,7 +70,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         /// 
-        static member getUsers (config: DirectorySearcherConfig list) =
+        static member public getUsers (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectCategory=person)(objectCategory=user){c.filter})"""})
             |> List.map doSearch
@@ -83,7 +83,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///
-        static member getComputers (config: DirectorySearcherConfig list) =
+        static member public getComputers (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectCategory=computer)(objectCategory=server)(objectClass=computer)(objectClass=server){c.filter})"""})
             |> List.map doSearch
@@ -99,7 +99,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///        
-        static member getSites (config: DirectorySearcherConfig list) =
+        static member public getSites (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c ->
                 {c with filter = $"""(|(objectClass=site){c.filter})"""
@@ -115,7 +115,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///            
-        static member getOUs (config: DirectorySearcherConfig list) =
+        static member public getOUs (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectClass=organizationalUnit)(objectCategory=organizationalUnit)(ou=*){c.filter})"""})
             |> List.map doSearch
@@ -129,7 +129,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///
-        static member getGroups (config: DirectorySearcherConfig list) =
+        static member public getGroups (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectCategory=group){c.filter})"""})
             |> List.map doSearch
@@ -143,7 +143,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///
-        static member getDomainDNSZones (config: DirectorySearcherConfig list) =
+        static member public getDomainDNSZones (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectClass=dnsZone){c.filter})"""})
             |> List.map doSearch
@@ -157,7 +157,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///
-        static member getDNSRecords (config: DirectorySearcherConfig list) =
+        static member public getDNSRecords (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectClass=dnsnode){c.filter})"""})
             |> List.map doSearch
@@ -173,7 +173,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///
-        static member getDomainSubnets (config: DirectorySearcherConfig list) =
+        static member public getDomainSubnets (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c ->
                 {c with filter = $"""(|(siteObject=*){c.filter})"""
@@ -192,7 +192,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///
-        static member getDFSShares (config: DirectorySearcherConfig list) =
+        static member public getDFSShares (config: DirectorySearcherConfig list) =
             let part1 =
                 config
                 |> List.map (fun c -> {c with filter = $"""(|(objectClass=fTDfs){c.filter})"""})
@@ -213,7 +213,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///        
-        static member getGroupPolicyObjects (config: DirectorySearcherConfig list) =
+        static member public getGroupPolicyObjects (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c ->
                 {c with filter = $"""(|(objectCategory=groupPolicyContainer){c.filter})"""})
@@ -228,7 +228,7 @@ module Searcher =
         /// User-supplied filter is appended to the end of the logical or. 
         /// </summary>
         ///        
-        static member getDomainTrusts (config: DirectorySearcherConfig list) =
+        static member public getDomainTrusts (config: DirectorySearcherConfig list) =
             config
             |> List.map (fun c ->
                 {c with filter = $"""(|(objectClass=trustedDomain){c.filter})"""})
@@ -242,7 +242,145 @@ module Searcher =
         /// the DirectorySearcherConfig. This is the method to use if you want full control over the search logic.
         /// </summary>
         ///
-        static member getDomainObjects (config: DirectorySearcherConfig list) =
+        static member public getDomainObjects (config: DirectorySearcherConfig list) =
             config
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+
+                    
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all domain controllers using the filter
+        /// <code>(useraccountcontrol:1.2.840.113556.1.4.803:=8192)</code>
+        /// User-supplied filter is appended to the end of the logical or. 
+        /// </summary>
+        ///            
+        static member public getDomainControllers (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(useraccountcontrol:1.2.840.113556.1.4.803:=8192){c.filter}"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+           
+ 
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all hosts with the TRUSTED_FOR_DELEGATION userAccountControl
+        /// flag set using the filter
+        /// <code>(useraccountcontrol:1.2.840.113556.1.4.803:=524288)</code>
+        /// User-supplied filter is ignored for this search. 
+        /// </summary>
+        ///            
+        static member public getHostsTrustedForDelegation (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(useraccountcontrol:1.2.840.113556.1.4.803:=524288)"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+            
+
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all self-reported server objects that lack the userAccountControl
+        /// SERVER_TRUST_ACCOUNT flag set using the filter
+        /// <code>(&(operatingSystem=*server*)(!(userAccountControl:1.2.840.113556.1.4.803:=8192))</code>
+        /// User-supplied filter is appended to the end of the logical and. 
+        /// </summary>
+        ///
+        static member public getReportedServersNotDC (config: DirectorySearcherConfig list) =
+            config
+            |> List.map(fun c ->
+                {c with filter = $"""(&(operatingSystem=*server*)(!(userAccountControl:1.2.840.113556.1.4.803:=8192)){c.filter})"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+            
+            
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all containers using the filter
+        /// <code>(objectCategory=container)</code>
+        /// User-supplied filter is appended to the end of the logical or. 
+        /// </summary>
+        ///
+        static member public getContainers (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(|(objectCategory=container){c.filter})"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+
+
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all users with a non-null serviceprincipalname using the filter
+        /// <code>(&(objectClass=user)(!objectClass=computer)(serviceprincipalname=*)</code>
+        /// User-supplied filter is appended to the end of the logical and. 
+        /// </summary>
+        ///
+        static member public getUsersWithSPNs (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(&(objectClass=user)(!objectClass=computer)(serviceprincipalname=*){c.filter})"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+            
+            
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all users with constrained delegation rights using the filter
+        /// <code>(&(objectClass=user)(msds-allowedtodelegateto=*)</code>
+        /// User-supplied filter is appended to the end of the logical and. 
+        /// </summary>
+        ///
+        static member public getConstrainedDelegates (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(&(objectClass=user)(msds-allowedtodelegateto=*){c.filter})"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+            
+            
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all AS-REP roasting targets using the filter
+        /// <code>(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))</code>
+        /// User-supplied filter is ignored for this search. 
+        /// </summary>
+        ///
+        static member public getASREPTargets (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+            
+            
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve all kerberoasting targets using the filter
+        /// <code>(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(samaccounttype=805306369)))</code>
+        /// User-supplied filter is ignored for this search. 
+        /// </summary>
+        ///
+        static member public getKerberoastTargets (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(samaccounttype=805306369)))"""})
+            |> List.map doSearch
+            |> List.collect createLDAPSearchResults
+            
+            
+        ///
+        /// <summary>
+        /// Connects to an AD and attempts to retrieve the Protected Users group if it contains any members
+        /// using the filter
+        /// <code>(&(samaccountname=Protect*)(member=*))</code>
+        /// User-supplied filter is ignored for this search. 
+        /// </summary>
+        ///
+        static member public getProtectedUsers (config: DirectorySearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"""(&(samaccountname=Protect*)(member=*))"""})
             |> List.map doSearch
             |> List.collect createLDAPSearchResults

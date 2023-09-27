@@ -8,6 +8,6 @@ module Mold =
     
         with        
         
-        static member getValue key (res: LDAPSearchResult) =
-            res.LDAPData[key]
+        static member getValue key (res: LDAPSearchResult list) =
+            List.map (fun r -> r.LDAPData[key]) res
 

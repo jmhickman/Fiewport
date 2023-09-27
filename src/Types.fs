@@ -97,3 +97,20 @@ module Types =
           parent: string option
           pdcRoleOwner: string
           ridRoleOwner: string }
+        
+        
+    ///
+    /// Setting up the Tee module    
+    type AttributeFilter = string  -> LDAPSearchResult list -> LDAPSearchResult list
+    
+    ///
+    /// Setting up the Tee module
+    type ValueFilter = ADDataTypes -> LDAPSearchResult list -> LDAPSearchResult list
+    
+    ///
+    /// Setting up the Tee module
+    type AttributeIsValueFilter = string -> ADDataTypes -> LDAPSearchResult list -> LDAPSearchResult list
+    
+    ///
+    /// Setting up the Tee module
+    type Action = LDAPSearchResult -> unit

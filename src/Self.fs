@@ -2,8 +2,7 @@
 
 open System.DirectoryServices.ActiveDirectory
 
-module Self =
-    
+module Self =    
     
     ///
     /// Shoves Domain object data into a record that ...approximates a real Domain record that would be difficult to

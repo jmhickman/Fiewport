@@ -5,7 +5,7 @@ open System.DirectoryServices
 
 open Types
 open ADData
-open LDAPRecords
+open LDAPConstants
 
 module DomainSearcher = 
     
@@ -99,7 +99,7 @@ module DomainSearcher =
 
     
     ///
-    /// I might toss this, not sure it's worth the loc. Removes the three record attrs from the Map.
+    /// I might toss this, not sure it's worth the loc. Removes the four record attrs from the Map.
     let private stripObjsAndEmit (map: Map<string, ADDataTypes>) =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
@@ -127,7 +127,9 @@ module DomainSearcher =
         |> stripObjsAndEmit
     
     
-    let decodeLDAPSearcherError error =
+    ///
+    /// Error message injection
+    let private decodeLDAPSearcherError error =
         match error with
         | ServerConnectionError s -> "ServerConnectionError: " + s
         | UnknownError80005000 s -> "UnknownError80005000: " + s

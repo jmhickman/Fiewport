@@ -17,9 +17,9 @@
         <Compile Include="src\Self.fs" />
         <Compile Include="src\Mold.fs" />
         <Compile Include="src\Filter.fs" />
+        <Compile Include="src\Tee.fs" />
         <Compile Include="src\DomainSearcher.fs" />
         <Compile Include="src\Searcher.fs" />
-        <Compile Include="src\Tee.fs" />
     </ItemGroup>
 
     <ItemGroup>

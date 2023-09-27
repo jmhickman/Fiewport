@@ -4,6 +4,7 @@ open Types
 open LDAPConstants
 open System
 open System.Security.AccessControl
+open System.Security.Principal
 open System.DirectoryServices.AccountManagement
 
 module ADData =
@@ -62,4 +63,7 @@ module ADData =
          static member readUserAccountControl bits =
              [for i in 0..31 do if ((bits >>> i) &&& 1) = 1 then yield uacPropertyFlags[i]]
              |> String.concat ", "
-             |> fun s -> $"{bits} -> {s}"
+             |> fun s -> $"{bits} -> {s}"             
+             
+         static member readSID bytes =
+             SecurityIdentifier(bytes, 0) |> fun sid -> sid.Value

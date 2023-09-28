@@ -16,22 +16,23 @@ module Searcher =
     /// Linkage to DomainSearcher module    
     let private configureSearcher (domainAndConfig: DirectoryEntry * DirectorySearcherConfig) =
         let domain, config = domainAndConfig
-        getDomainSearcher config domain
+        (getDomainSearcher config domain, config )
         
     
     ///
     /// Calls FindAll() on the DirectorySearcher, encodes some of the ways it can blow up
-    let private findAll (searcher: DirectorySearcher) =
+    let private findAll (searcherAndConfig: DirectorySearcher * DirectorySearcherConfig) =
+        let searcher, config = searcherAndConfig
         try
-            searcher.FindAll() |> Ok
+            (searcher.FindAll(), {config with password = ""} ) |> Ok
         with
             exn ->
                 match exn with
-                | x when x.Message = "The server is not operational." -> x.Message |> ServerConnectionError |> Error
-                | x when x.Message = "Unknown error (0x80005000)" -> x.Message |> UnknownError80005000 |> Error
-                | x when x.Message = "An invalid dn syntax has been specified." -> x.Message |> InvalidDNSyntax |> Error
-                | x when x.Message = "There is no such object on the server." -> x.Message |> NoSuchObject |> Error
-                | x -> x.Message |> OtherError |> Error
+                | x when x.Message = "The server is not operational." -> x.Message |> ServerConnectionError|> (fun e -> e, {config with password = ""}) |> Error
+                | x when x.Message = "Unknown error (0x80005000)" -> x.Message |> UnknownError80005000 |> (fun e -> e, {config with password = ""})|> Error
+                | x when x.Message = "An invalid dn syntax has been specified." -> x.Message |> InvalidDNSyntax|> (fun e -> e, {config with password = ""}) |> Error
+                | x when x.Message = "There is no such object on the server." -> x.Message |> NoSuchObject |> (fun e -> e, {config with password = ""})|> Error
+                | x -> x.Message |> OtherError |> (fun e -> e, {config with password = ""}) |> Error
     
     
     ///
@@ -74,7 +75,7 @@ module Searcher =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectCategory=person)(objectCategory=user){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetUsers)
 
         ///
         /// <summary>
@@ -87,7 +88,7 @@ module Searcher =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectCategory=computer)(objectCategory=server)(objectClass=computer)(objectClass=server){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetComputers)
             
 
         ///
@@ -105,7 +106,7 @@ module Searcher =
                 {c with filter = $"""(|(objectClass=site){c.filter})"""
                         ldapDomain = $"""{c.ldapDomain}/CN=Sites,CN=Configuration,{deriveDistinguishedString c.ldapDomain}""" })
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetSites)
             
 
         ///
@@ -119,7 +120,7 @@ module Searcher =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectClass=organizationalUnit)(objectCategory=organizationalUnit)(ou=*){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetOUs)
 
 
         ///
@@ -133,7 +134,7 @@ module Searcher =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectCategory=group){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetGroups)
             
         
         ///
@@ -147,7 +148,7 @@ module Searcher =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectClass=dnsZone){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetDomainDNSZones)
             
         
         ///
@@ -161,7 +162,7 @@ module Searcher =
             config
             |> List.map (fun c -> {c with filter = $"""(|(objectClass=dnsnode){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetDNSRecords)
 
 
         ///
@@ -179,7 +180,7 @@ module Searcher =
                 {c with filter = $"""(|(siteObject=*){c.filter})"""
                         ldapDomain = $"""{c.ldapDomain}/CN=Subnets,CN=Sites,CN=Configuration,{deriveDistinguishedString c.ldapDomain}""" })
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetDomainSubnets)
             
             
         ///
@@ -197,12 +198,12 @@ module Searcher =
                 config
                 |> List.map (fun c -> {c with filter = $"""(|(objectClass=fTDfs){c.filter})"""})
                 |> List.map doSearch
-                |> List.collect createLDAPSearchResults
+                |> List.collect (createLDAPSearchResults LDAPSearchType.GetDFSShares)
             let part2 =
                 config
                 |> List.map (fun c -> {c with filter = $"""(|(objectClass=msDFS-Linkv2){c.filter})"""})
                 |> List.map doSearch
-                |> List.collect createLDAPSearchResults
+                |> List.collect (createLDAPSearchResults LDAPSearchType.GetDFSShares)
             part1 @ part2
             
             
@@ -218,7 +219,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(|(objectCategory=groupPolicyContainer){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetGroupPolicyObjects)
             
             
         ///
@@ -233,7 +234,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(|(objectClass=trustedDomain){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetDomainTrusts)
             
             
         ///
@@ -245,7 +246,7 @@ module Searcher =
         static member public getDomainObjects (config: DirectorySearcherConfig list) =
             config
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetDomainObjects)
 
                     
         ///
@@ -260,7 +261,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(useraccountcontrol:1.2.840.113556.1.4.803:=8192){c.filter}"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetDomainControllers)
            
  
         ///
@@ -276,7 +277,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(useraccountcontrol:1.2.840.113556.1.4.803:=524288)"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetHostsTrustedForDelegation)
             
 
         ///
@@ -292,7 +293,7 @@ module Searcher =
             |> List.map(fun c ->
                 {c with filter = $"""(&(operatingSystem=*server*)(!(userAccountControl:1.2.840.113556.1.4.803:=8192)){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetReportedServersNotDC)
             
             
         ///
@@ -307,7 +308,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(|(objectCategory=container){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetContainers)
 
 
         ///
@@ -322,7 +323,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(&(objectClass=user)(!objectClass=computer)(serviceprincipalname=*){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetUsersWithSPNs)
             
             
         ///
@@ -337,7 +338,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(&(objectClass=user)(msds-allowedtodelegateto=*){c.filter})"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetConstrainedDelegates)
             
             
         ///
@@ -352,7 +353,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetASREPTargets)
             
             
         ///
@@ -367,7 +368,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(samaccounttype=805306369)))"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetKerberoastTargets)
             
             
         ///
@@ -383,7 +384,7 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(&(samaccountname=Protect*)(member=*))"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetProtectedUsers)
             
             
         ///
@@ -399,4 +400,4 @@ module Searcher =
             |> List.map (fun c ->
                 {c with filter = $"""(&(objectCategory=group)(memberOf=CN=Administrators,CN=Builtin,{c.ldapDomain |> deriveDistinguishedString}))"""})
             |> List.map doSearch
-            |> List.collect createLDAPSearchResults
+            |> List.collect (createLDAPSearchResults LDAPSearchType.GetGroupsWithLocalAdminRights)

@@ -1,6 +1,7 @@
 ﻿namespace Fiewport
 
 open System.DirectoryServices.ActiveDirectory
+open System.DirectoryServices
 
 [<AutoOpen>]
 module Types =
@@ -44,6 +45,31 @@ module Types =
           ldapDomain: string
           username: string
           password: string }
+        
+        
+    type LDAPSearchType =
+        | GetUsers
+        | GetComputers
+        | GetSites
+        | GetOUs
+        | GetGroups
+        | GetDomainDNSZones
+        | GetDNSRecords
+        | GetDomainSubnets
+        | GetDFSShares
+        | GetGroupPolicyObjects
+        | GetDomainTrusts
+        | GetDomainObjects
+        | GetDomainControllers
+        | GetHostsTrustedForDelegation
+        | GetReportedServersNotDC
+        | GetContainers
+        | GetUsersWithSPNs
+        | GetConstrainedDelegates
+        | GetASREPTargets
+        | GetKerberoastTargets
+        | GetProtectedUsers
+        | GetGroupsWithLocalAdminRights
     
     
     /// <summary>
@@ -62,7 +88,9 @@ module Types =
     // consider adding a property that includes the search values in the record?
     // That seems like a good idea, to help easily group which queries came from what data
     type LDAPSearchResult =
-        { objectClass: string list
+        { searchType: LDAPSearchType 
+          searchConfig: DirectorySearcherConfig
+          objectClass: string list
           objectCategory: string
           objectGUID: Guid
           nTSecurityDescriptor: string
@@ -98,7 +126,9 @@ module Types =
           pdcRoleOwner: string
           ridRoleOwner: string }
         
-        
+
+    type IntermediateSearchResultsCollection = Result<SearchResultCollection * DirectorySearcherConfig, LDAPSearcherError * DirectorySearcherConfig>
+            
     ///
     /// Setting up the Tee module    
     type Filter = LDAPSearchResult list -> LDAPSearchResult list

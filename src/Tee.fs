@@ -18,6 +18,6 @@ module Tee =
             /// |> Tee.filter (Filter.attributePresent "adminCount") (fileWriteAction "admin-path")
             /// |> ignore</code>
             /// </summary>
-            static member filtering (filter: Filter) (action: Action) (results: LDAPSearchResult list) =
+            static member filter (filter: Filter) (action: Action) (results: LDAPSearchResult list) =
                 results |> filter |> List.iter action
                 results

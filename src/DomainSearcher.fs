@@ -100,7 +100,7 @@ module DomainSearcher =
     
     ///
     /// I might toss this, not sure it's worth the loc. Removes the four record attrs from the Map.
-    let private stripObjsAndEmit (map: Map<string, ADDataTypes>) =
+    let private stripObjsAndEmit searchType searchConfig (map: Map<string, ADDataTypes>) =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
         let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)
@@ -109,7 +109,15 @@ module DomainSearcher =
             ntsd <- map.Item "nTSecurityDescriptor" |> ADData.unwrapADBytes |> ADData.readSecurityDescriptor
         ["objectClass"; "objectCategory"; "objectGUID"; "nTSecurityDescriptor"]
         |> List.fold (fun (lessMap: Map<string, ADDataTypes>) prop -> lessMap.Remove prop ) map
-        |> fun map -> {objectClass = objcls; objectCategory = objcat ; objectGUID = objguid; nTSecurityDescriptor = ntsd; LDAPSearcherError = None; LDAPData = map }
+        |> fun map ->
+                { searchType = searchType
+                  searchConfig = searchConfig 
+                  objectClass = objcls
+                  objectCategory = objcat
+                  objectGUID = objguid
+                  nTSecurityDescriptor = ntsd
+                  LDAPSearcherError = None
+                  LDAPData = map }
     
     
     ///
@@ -118,13 +126,13 @@ module DomainSearcher =
     /// in the given SearchResult.
     /// </summary>
     /// 
-    let private LDAPCoercer (searchResult: SearchResult) =
+    let private LDAPCoercer searchType searchConfig (searchResult: SearchResult) =
         ADSIAttributes
         |> List.filter searchResult.Properties.Contains 
         |> List.fold(fun mapData attr ->
             // create an empty Map to use as accumulator for the fold, stuffing it with unboxed values 
             mapData |> Map.add attr (unboxLDAPValue attr searchResult)) Map.empty<string, ADDataTypes>
-        |> stripObjsAndEmit
+        |> stripObjsAndEmit searchType searchConfig
     
     
     ///
@@ -140,12 +148,27 @@ module DomainSearcher =
     
     ///
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
-    let internal createLDAPSearchResults (results: Result<SearchResultCollection, LDAPSearcherError>) = 
+    let internal createLDAPSearchResults searchType (results: IntermediateSearchResultsCollection) = 
+        
         match results with
-            | Ok results' ->
+            | Ok (results', searchConfig) ->
                 try
-                    [for item in results' do yield item] |> List.map LDAPCoercer
+                    [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
                 with exn ->
-                    [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; nTSecurityDescriptor =  ""; LDAPSearcherError = exn.Message |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
-            | Error e ->
-                [{objectClass = [""]; objectCategory = "" ; objectGUID = Guid.Empty; nTSecurityDescriptor =  ""; LDAPSearcherError = decodeLDAPSearcherError e |> Some; LDAPData = Map.empty<string,ADDataTypes> }]
+                    [{ searchType = searchType
+                       searchConfig = searchConfig 
+                       objectClass = [""]
+                       objectCategory = ""
+                       objectGUID = Guid.Empty
+                       nTSecurityDescriptor =  ""
+                       LDAPSearcherError = exn.Message |> Some
+                       LDAPData = Map.empty<string,ADDataTypes> }]
+            | Error (e, searchConfig) ->                
+                [{ searchType = searchType
+                   searchConfig = searchConfig
+                   objectClass = [""]
+                   objectCategory = ""
+                   objectGUID = Guid.Empty
+                   nTSecurityDescriptor =  ""
+                   LDAPSearcherError = decodeLDAPSearcherError e |> Some
+                   LDAPData = Map.empty<string,ADDataTypes> }]

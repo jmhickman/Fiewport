@@ -14,7 +14,7 @@ module Tee =
             /// <para>Example:</para>
             /// <code>[config]
             /// |> Searcher.getUsers
-            /// |> Tee.filter (Filter.attributePresent "sAMAccountName") (prettyPrint "sam-path")
+            /// |> Tee.filter (Filter.attributePresent "sAMAccountName") prettyPrint
             /// |> Tee.filter (Filter.attributePresent "adminCount") (fileWriteAction "admin-path")
             /// |> ignore</code>
             /// </summary>

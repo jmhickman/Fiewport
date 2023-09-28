@@ -101,15 +101,7 @@ module Types =
         
     ///
     /// Setting up the Tee module    
-    type AttributeFilter = string  -> LDAPSearchResult list -> LDAPSearchResult list
-    
-    ///
-    /// Setting up the Tee module
-    type ValueFilter = ADDataTypes -> LDAPSearchResult list -> LDAPSearchResult list
-    
-    ///
-    /// Setting up the Tee module
-    type AttributeIsValueFilter = string -> ADDataTypes -> LDAPSearchResult list -> LDAPSearchResult list
+    type Filter = LDAPSearchResult list -> LDAPSearchResult list
     
     ///
     /// Setting up the Tee module

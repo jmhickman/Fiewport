@@ -47,16 +47,16 @@ module Searcher =
     /// 'SearchBase' locations in the LDAP hierarchy the user can query at once.
     /// </para>
     /// <para>
-    /// The tradeoff is that this is a 'noisy' way of doing multiple AD searches, because it isn't using a cached query
-    /// across multiple searches. This repetitive querying is easy to detect for defenders. So a Searcher is for when
-    /// stealthiness isn't a concern. 
+    /// To get stealthier behavior, use <c>getDomainObjects</c> with a filter like <c>objectClass=*</c> and save the results
+    /// to a value, and then use the value in multiple operations. Alternatively, use the <c>Tee</c> module to perform multiple
+    /// filtering/molding operations per search.
     /// </para>
     /// <para>
-    /// All of the filters predefined in these methods are logical OR, allowing for the widest net to be cast for
+    /// Most of the filters predefined in these methods use logical <c>OR</c>, allowing for the widest net to be cast for
     /// results. Fiewport supplies a battery of filters that allow you to dig into the data and extract the results
     /// you want, rather than crafting very narrow queries. However, passing a filter value in the
     /// DirectorySearcherConfig causes it to be appended to the end of the pre-built filter. The LDAP connection string
-    /// passed via the `ldapDomain` value is respected as well, if you want the search restricted to certain containers.
+    /// passed via the `ldapDomain` value is respected as well, if you want the search restricted to a certain path.
     /// </para>
     /// 
     /// </summary>

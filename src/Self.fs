@@ -24,8 +24,8 @@ module Self =
     ///
     /// <summary>
     /// This type provides some basic .Net-based introspection, as opposed to the LDAP-based approach of the Searcher.
-    /// `None` results typically mean that the computer or user process running the script isn't joined to a domain,
-    /// but can also indicate other errors. You may attempt to connect to a domain manually using the `tryGetDomain`
+    /// <c>None</c> results typically mean that the computer or user process running the script isn't joined to a domain,
+    /// but can also indicate other errors. You may attempt to connect to a domain manually using the <c>tryGetDomain</c>
     /// method.
     /// </summary>
     type Self = class end

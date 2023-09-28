@@ -13,6 +13,7 @@ module Types =
     /// I have access to a limited AD that is very simplistic, so verifying all of these is likely
     /// impossible for me alone.
     /// </remarks>
+    /// 
     type ADDataTypes =
         | ADInt64 of Int64 // confirmed
         | ADInt of int // confirmed
@@ -21,11 +22,11 @@ module Types =
         | ADString of string // confirmed
         | ADDateTime of DateTime // confirmed
         | ADStrings of string list // confirmed
-        | ADInt64List of Int64 list // unconfirmed datatype
-        | ADIntList of int list // unconfirmed datatype
-        | ADBoolList of bool list // unconfirmed datatype
+        //| ADInt64List of Int64 list // unconfirmed datatype
+        //| ADIntList of int list // unconfirmed datatype
+        //| ADBoolList of bool list // unconfirmed datatype
         | ADDateTimes of DateTime list // confirmed
-        | ADBytesList of byte array list // unconfirmed datatype
+        //| ADBytesList of byte array list // unconfirmed datatype
         //| ADComObject of ??  saw this referenced in some docs, haven't seen it yet
     
     ///
@@ -38,6 +39,7 @@ module Types =
     /// "LDAP://domain.tld/CN=Some,CN=Container,DC=domain,DC=tld"</param>
     /// <param name="username">Username used to connect to the AD</param>
     /// <param name="password">Password used to connect to the AD</param>
+    /// 
     type DirectorySearcherConfig =
         { properties: string array
           filter: string
@@ -72,21 +74,13 @@ module Types =
         | GetGroupsWithLocalAdminRights
     
     
+    ///
     /// <summary>
-    /// <para>
     /// Represents the result of an LDAP search. AD has 1507 unique attributes, and that's
-    /// a few too many to individually add to a record. So aside from three
-    /// always-present attrs, the rest are in a Map where they can be inspected manually.
-    /// </para>
-    /// <remarks>
-    /// Storing the bulk of data as a Map adds overhead for scoped functions ("I only care about persons" or
-    /// "I only care about GPOs") by checking any input LDAPSearchResult[s] for relevance. Total pipeline
-    /// frictions are reduced though, and it doesn't prevent creating ad-hoc "verifiedThing" types if required.
-    /// </remarks> 
+    /// a few too many to individually add to a record. Most are stored in the <c>Map</c> but a few are
+    /// available from the top of the record.
     /// </summary>
     ///
-    // consider adding a property that includes the search values in the record?
-    // That seems like a good idea, to help easily group which queries came from what data
     type LDAPSearchResult =
         { searchType: LDAPSearchType 
           searchConfig: DirectorySearcherConfig
@@ -103,6 +97,7 @@ module Types =
     /// A mild attempt to encode the various types of errors observed for LDAP searches
     /// during development. I'm sure there are more.
     /// </summary>
+    /// 
     type LDAPSearcherError =
         | ServerConnectionError of string
         | UnknownError80005000 of string
@@ -114,6 +109,7 @@ module Types =
     ///
     /// A 'lightweight' (lazy) way to capture some Domain details without devolving into
     /// mutually recursive record definitions. Because no one has time for that.
+    /// 
     type ActiveDirectoryDomain =
         { children: string list
           domainControllers: string list

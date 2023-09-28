@@ -1,9 +1,9 @@
 ﻿namespace Fiewport
 
-open Types
-
 module LDAPConstants =
     
+    ///
+    /// An Enum that doesn't look like one. 
     let uacPropertyFlags =
         [ "SCRIPT";
           "ACCOUNTDISABLE";
@@ -40,9 +40,7 @@ module LDAPConstants =
     /// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-ada3/4517e835-3ee6-44d4-bb95-a94b6966bfb0
     /// </remarks> 
     /// <summary>
-    /// This list will serve as the primary iterator that SearchResults will be
-    /// queried for when creating LDAPRecords. Since these words will form the Keys in the Map data, note they are
-    /// case sensitive. Actual LDAP queries aren't.
+    /// These words will form the Keys in the <c>LDAPSearchResult</c> Map data, note they are case sensitive. Actual LDAP queries aren't.
     /// </summary>
     /// 
     let public ADSIAttributes =

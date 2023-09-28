@@ -1,8 +1,5 @@
 ﻿namespace Fiewport
 
-open Types
-open LDAPConstants
-
 module Filter =    
     
     type Filter = class end
@@ -11,7 +8,7 @@ module Filter =
 
         ///
         ///<summary>
-        /// Filters LDAPSearchResults based upon the presence of the supplied `filterAttribute` key in the
+        /// Filters LDAPSearchResults based upon the presence of the supplied <c>filterAttribute</c> key in the
         /// LDAPData map.
         /// </summary>
         static member public attributePresent filterAttribute (res: LDAPSearchResult list) =
@@ -20,7 +17,7 @@ module Filter =
         
         ///
         ///<summary>
-        /// Filters LDAPSearchResults based upon the presence of the supplied value 'value' for any key in the
+        /// Filters LDAPSearchResults based upon the presence of the supplied value <c>value</c> for any key in the
         /// LDAPData Map.
         /// </summary>
         static member public valuePresent value (res: LDAPSearchResult list) =
@@ -36,5 +33,10 @@ module Filter =
         /// <summary>
         /// Filter LDAPSearchResults based upon the presence of a matching attribute and value.
         /// </summary>
+        /// <remarks>
+        /// The <c>value</c>
+        /// comparison is strict, as these comparisons operate on the <c>ADDataType</c>s so there's no regex or <c>
+        /// Contains</c> testing.
+        /// </remarks>        
         static member public attributeIsValue attr value (res: LDAPSearchResult list) =
             List.filter (fun p -> (p.LDAPData.ContainsKey attr && p.LDAPData[attr] = value)) res

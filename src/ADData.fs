@@ -5,7 +5,6 @@ open LDAPConstants
 open System
 open System.Security.AccessControl
 open System.Security.Principal
-open System.DirectoryServices.AccountManagement
 
 module ADData =
     
@@ -14,8 +13,8 @@ module ADData =
      /// An object that collects some static methods for working with ADDataTypes.
      /// </summary>
      /// <remarks>
-     /// These have no type safety. If you feed a string into an Int unwrapper,
-     /// you're just going to get a 0, and so on.
+     /// These have no type safety or checking. If you feed a string into an Int unwrapper,
+     /// you're just going to get a 0. If you feed in a malformed SDDL byte array, it will blow up. And so on.
      /// </remarks>
      /// 
      type ADData = class end

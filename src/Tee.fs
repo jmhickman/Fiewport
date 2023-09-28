@@ -8,7 +8,7 @@ module Tee =
 
             ///
             /// <summary>
-            /// <para>Tee.filter allows a specific filter (or sequence of filters) to be run against an incoming set of
+            /// <para><c>Tee.filter</c> allows a specific filter (or sequence of filters) to be run against an incoming set of
             /// LDAPSearchResults, applying a unit function to the output, and then returning the original results for
             /// other uses. This function is side-effectful through the Action function.</para>
             /// <para>Example:</para>

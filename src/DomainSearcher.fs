@@ -9,6 +9,7 @@ open LDAPConstants
 
 module DomainSearcher = 
     
+    ///
     ///<summary>
     ///<para>
     /// Creates a connection to the specified LDAP endpoint at the specified path.
@@ -24,15 +25,14 @@ module DomainSearcher =
     /// <code>LDAP://CN=Some,CN=Container,DC=somedomain,DC=tld</code>
     /// will not work.
     /// </para>
-    /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
     /// </summary>
+    /// 
     let internal getDomainConnection lDAPEndpoint username password = 
         new DirectoryEntry(lDAPEndpoint, username, password)
 
 
     /// 
     /// <summary>Creates a DirectorySearcher using an existing connection to an LDAP endpoint.</summary>
-    /// <remarks>This object should be disposed when you're done with it in a long running script.</remarks>
     let internal getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
         |> fun ds ->
@@ -45,6 +45,7 @@ module DomainSearcher =
     /// <summary>
     /// Helper to convert a TLD in the connection style into the LDAP style
     /// </summary>
+    /// 
     let internal deriveDistinguishedString (domainTld: string) =
         domainTld[7..].Split('.')
         |> Array.map (fun ss -> $"""DC={ss},""")
@@ -55,9 +56,6 @@ module DomainSearcher =
     /// <summary>
     /// This function unboxes values from a SearchResult and sticks them in an ADDataType.
     /// </summary>
-    /// <remarks> We don't test for `count &lt;= 0` because we only enter this function if SearchResult.Properties.Contains()
-    /// comes back with true.
-    /// </remarks>
     /// 
     let private unboxLDAPValue attrName (searchResult: SearchResult) =
         let items = searchResult.Properties.Item(attrName)
@@ -89,17 +87,17 @@ module DomainSearcher =
                 |> Seq.map unbox<string>
                 |> List.ofSeq
                 |> ADStrings
-            | x when x = typeof<bool> ->
-                searchResult.Properties.Item(attrName)
-                |> Seq.cast<bool>
-                |> Seq.map unbox<bool>
-                |> List.ofSeq
-                |> ADBoolList
+            // | x when x = typeof<bool> ->
+            //     searchResult.Properties.Item(attrName)
+            //     |> Seq.cast<bool>
+            //     |> Seq.map unbox<bool>
+            //     |> List.ofSeq
+            //     |> ADBoolList
             | _ -> "hit collection type that didn't match: " + detectedType.ToString() |> ADString               
 
     
     ///
-    /// I might toss this, not sure it's worth the loc. Removes the four record attrs from the Map.
+    /// Removes the four record attrs from the Map that appear in the 'root' of the record.
     let private stripObjsAndEmit searchType searchConfig (map: Map<string, ADDataTypes>) =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
@@ -152,6 +150,8 @@ module DomainSearcher =
         
         match results with
             | Ok (results', searchConfig) ->
+                // This try/with is necessary because (for whatever reason) invalid filters blow up here, instead of
+                // during the search. I don't know if this is some hidden lazy eval or what, but that's what happens.
                 try
                     [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
                 with exn ->

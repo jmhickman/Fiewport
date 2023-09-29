@@ -1,5 +1,8 @@
 ﻿namespace Fiewport
 
+open Types
+
+[<AutoOpen>]
 module Tee =    
     
     type Tee = class end

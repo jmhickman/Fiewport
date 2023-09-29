@@ -6,6 +6,7 @@ open System
 open System.Security.AccessControl
 open System.Security.Principal
 
+[<AutoOpen>]
 module ADData =
     
      ///

@@ -14,6 +14,7 @@
         <Compile Include="src\Types.fs" />
         <Compile Include="src\LDAPConstants.fs" />
         <Compile Include="src\ADData.fs" />
+        <Compile Include="src\PrettyPrinter.fs" />
         <Compile Include="src\Self.fs" />
         <Compile Include="src\Mold.fs" />
         <Compile Include="src\Filter.fs" />
@@ -23,6 +24,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.47.39" />
+      <PackageReference Include="Spectre.Console" Version="0.47.0" />
       <PackageReference Include="System.DirectoryServices" Version="7.0.1" />
       <PackageReference Include="System.DirectoryServices.AccountManagement" Version="7.0.1" />
       <PackageReference Include="System.Security.AccessControl" Version="6.0.0" />

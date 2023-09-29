@@ -4,6 +4,7 @@ open System.DirectoryServices
 open Types
 open DomainSearcher
 
+[<AutoOpen>]
 module Searcher =
     
     ///

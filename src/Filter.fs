@@ -1,6 +1,7 @@
 ﻿namespace Fiewport
 
-module Filter =    
+[<AutoOpen>]
+module Filter =
     
     type Filter = class end
     

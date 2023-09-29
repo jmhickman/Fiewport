@@ -43,7 +43,7 @@ module Types =
     type DirectorySearcherConfig =
         { properties: string array
           filter: string
-          scope: System.DirectoryServices.SearchScope
+          scope: SearchScope
           ldapDomain: string
           username: string
           password: string }
@@ -144,5 +144,5 @@ module Types =
     
     
     ///
-    /// Settings up the Tee module
+    /// Setting up the Tee module
     type MoldAction<'T> = 'T -> unit

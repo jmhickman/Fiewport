@@ -1,5 +1,6 @@
 ﻿namespace Fiewport
 
+[<AutoOpen>]
 module Mold =
     
     let private valueToString key res =

@@ -88,8 +88,8 @@ module Types =
           objectCategory: string
           objectGUID: Guid
           nTSecurityDescriptor: string
-          LDAPSearcherError: string option
-          LDAPData: Map<string, ADDataTypes> }
+          lDAPSearcherError: string option
+          lDAPData: Map<string, ADDataTypes> }
         
         
     ///
@@ -122,13 +122,27 @@ module Types =
           pdcRoleOwner: string
           ridRoleOwner: string }
         
-
-    type IntermediateSearchResultsCollection = Result<SearchResultCollection * DirectorySearcherConfig, LDAPSearcherError * DirectorySearcherConfig>
+    ///
+    /// Convenience type. Ugly tuples are ugly.
+    type IntermediateSearchResultsCollection =
+        Result<SearchResultCollection * DirectorySearcherConfig, LDAPSearcherError * DirectorySearcherConfig>
             
+    
     ///
     /// Setting up the Tee module    
     type Filter = LDAPSearchResult list -> LDAPSearchResult list
     
+    
     ///
     /// Setting up the Tee module
-    type Action = LDAPSearchResult -> unit
+    type Mold<'T> = LDAPSearchResult list -> 'T list
+    
+    
+    ///
+    /// Setting up the Tee module
+    type FilterAction = LDAPSearchResult -> unit
+    
+    
+    ///
+    /// Settings up the Tee module
+    type MoldAction<'T> = 'T -> unit

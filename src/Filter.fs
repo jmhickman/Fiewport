@@ -12,7 +12,7 @@ module Filter =
         /// LDAPData map.
         /// </summary>
         static member public attributePresent filterAttribute (res: LDAPSearchResult list) =
-            List.filter (fun p -> p.LDAPData.ContainsKey filterAttribute) res
+            List.filter (fun p -> p.lDAPData.ContainsKey filterAttribute) res
 
         
         ///
@@ -23,8 +23,8 @@ module Filter =
         static member public valuePresent value (res: LDAPSearchResult list) =
             res
             |> List.filter(fun res' ->
-                [for key in res'.LDAPData.Keys do yield key]
-                |> List.map (fun attr -> res'.LDAPData[attr] = value)
+                [for key in res'.lDAPData.Keys do yield key]
+                |> List.map (fun attr -> res'.lDAPData[attr] = value)
                 |> List.filter (fun p -> p = true)
                 |> fun m -> m.Length > 0)
             
@@ -39,4 +39,4 @@ module Filter =
         /// Contains</c> testing.
         /// </remarks>        
         static member public attributeIsValue attr value (res: LDAPSearchResult list) =
-            List.filter (fun p -> (p.LDAPData.ContainsKey attr && p.LDAPData[attr] = value)) res
+            List.filter (fun p -> (p.lDAPData.ContainsKey attr && p.lDAPData[attr] = value)) res

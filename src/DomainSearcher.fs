@@ -114,8 +114,8 @@ module DomainSearcher =
                   objectCategory = objcat
                   objectGUID = objguid
                   nTSecurityDescriptor = ntsd
-                  LDAPSearcherError = None
-                  LDAPData = map }
+                  lDAPSearcherError = None
+                  lDAPData = map }
     
     
     ///
@@ -161,8 +161,8 @@ module DomainSearcher =
                        objectCategory = ""
                        objectGUID = Guid.Empty
                        nTSecurityDescriptor =  ""
-                       LDAPSearcherError = exn.Message |> Some
-                       LDAPData = Map.empty<string,ADDataTypes> }]
+                       lDAPSearcherError = exn.Message |> Some
+                       lDAPData = Map.empty<string,ADDataTypes> }]
             | Error (e, searchConfig) ->                
                 [{ searchType = searchType
                    searchConfig = searchConfig
@@ -170,5 +170,5 @@ module DomainSearcher =
                    objectCategory = ""
                    objectGUID = Guid.Empty
                    nTSecurityDescriptor =  ""
-                   LDAPSearcherError = decodeLDAPSearcherError e |> Some
-                   LDAPData = Map.empty<string,ADDataTypes> }]
+                   lDAPSearcherError = decodeLDAPSearcherError e |> Some
+                   lDAPData = Map.empty<string,ADDataTypes> }]

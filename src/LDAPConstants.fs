@@ -31,7 +31,10 @@ module LDAPConstants =
           "PASSWORD_EXPIRED";
           "TRUSTED_TO_AUTH_FOR_DELEGATION";
           "PARTIAL_SECRETS_ACCOUNT" ]
-        
+
+    let typedKeys = [
+        ""
+    ]
     ///
     /// <remarks>
     /// A full list of all AD attributes, as pulled from

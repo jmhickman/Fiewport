@@ -13,6 +13,7 @@ module Mold =
         | ADDateTime d -> d.ToShortDateString ()
         | ADStrings sList -> sList |> String.concat "; "
         | ADDateTimes dList -> dList |> List.map (fun d -> d.ToShortDateString ()) |> String.concat "; "
+        | ADBytesList bList -> bList |> List.map (fun b -> b |> Array.fold (fun acc b' -> acc + $"{b':x2}") "") |> String.concat ", "
     
     type Mold = class end
     

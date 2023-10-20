@@ -26,7 +26,7 @@ module Types =
         //| ADIntList of int list // unconfirmed datatype
         //| ADBoolList of bool list // unconfirmed datatype
         | ADDateTimes of DateTime list // confirmed
-        //| ADBytesList of byte array list // unconfirmed datatype
+        | ADBytesList of byte array list // unconfirmed datatype
         //| ADComObject of ??  saw this referenced in some docs, haven't seen it yet
     
     ///

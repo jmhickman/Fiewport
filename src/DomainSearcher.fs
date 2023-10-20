@@ -87,13 +87,13 @@ module DomainSearcher =
                 |> Seq.map unbox<string>
                 |> List.ofSeq
                 |> ADStrings
-            // | x when x = typeof<bool> ->
-            //     searchResult.Properties.Item(attrName)
-            //     |> Seq.cast<bool>
-            //     |> Seq.map unbox<bool>
-            //     |> List.ofSeq
-            //     |> ADBoolList
-            | _ -> "hit collection type that didn't match: " + detectedType.ToString() |> ADString               
+            | x when x = typeof<byte array> ->
+                searchResult.Properties.Item(attrName)
+                |> Seq.cast<byte array>
+                |> Seq.map unbox<byte array>
+                |> List.ofSeq
+                |> ADBytesList
+            | _ -> "***HIT COLLECTION TYPE THAT DIDN'T MATCH: " + detectedType.ToString() |> ADString               
 
     
     ///
@@ -158,7 +158,7 @@ module DomainSearcher =
                     [{ searchType = searchType
                        searchConfig = searchConfig 
                        objectClass = [""]
-                       objectCategory = ""
+                       objectCategory = "Failed Search"
                        objectGUID = Guid.Empty
                        nTSecurityDescriptor =  ""
                        lDAPSearcherError = exn.Message |> Some
@@ -167,7 +167,7 @@ module DomainSearcher =
                 [{ searchType = searchType
                    searchConfig = searchConfig
                    objectClass = [""]
-                   objectCategory = ""
+                   objectCategory = "Failed Search"
                    objectGUID = Guid.Empty
                    nTSecurityDescriptor =  ""
                    lDAPSearcherError = decodeLDAPSearcherError e |> Some

@@ -19,7 +19,8 @@ module Filter =
         ///
         ///<summary>
         /// Filters LDAPSearchResults based upon the presence of the supplied value <c>value</c> for any key in the
-        /// LDAPData Map.
+        /// LDAPData Map. Answers the question "does any key match this value?" Note that <c>value</c> is of type
+        /// ADDataTypes. Cast your term into the appropriate type, i.e. <code>"term" |> ADString</code> or <code>1 |> ADInt</code>
         /// </summary>
         static member public valuePresent value (res: LDAPSearchResult list) =
             res
@@ -32,7 +33,9 @@ module Filter =
         
         ///
         /// <summary>
-        /// Filter LDAPSearchResults based upon the presence of a matching attribute and value.
+        /// Filter LDAPSearchResults based upon the presence of a matching attribute and value. Note that
+        /// <c>value</c> is of type ADDataTypes. Cast your term into the appropriate type, i.e.
+        /// <code>"term" |> ADString</code> or <code>1 |> ADInt</code>
         /// </summary>
         /// <remarks>
         /// The <c>value</c>

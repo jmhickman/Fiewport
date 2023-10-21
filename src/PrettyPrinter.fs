@@ -2,6 +2,8 @@
 
 
 open System
+open Fiewport.LDAPConstants
+open Fiewport.ADData
 open Spectre.Console
 open SpectreCoff
 
@@ -14,19 +16,78 @@ module PrettyPrinter =
             BorderColor = Some Color.White
             Padding = Padding.AllEqual 0 }
 
+    ///
+    /// MS uses int64s to store these 'tick' values, instead of using unix timestamps like everyone else.
+    /// Handles the max-value case and otherwise returns a date stamp
+    let returnTicksAfterEpoch ticks =
+        match ticks with
+        | Int64.MaxValue -> "no expiry"
+        | _ -> 
+            DateTime (1601, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            |> fun epoch ->
+                epoch.AddTicks ticks
+                |> fun date -> date.ToShortDateString ()
+            
+    let returnTimespan ticks =        
+        match ticks with
+        | Int64.MinValue -> "No limit"
+        | _ -> TimeSpan.FromTicks (abs ticks) |> fun time -> time.TotalHours.ToString ()
+    
+    ///
+    /// Some int64 values encode data, usually a timestamp of some sort. This function handles those cases, and passes
+    /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
+    /// LDAP attributes to find all the ticks and weird values. I'll add handlers as cases come up.
+    /// 
+    let handleInt64s key (value: int64) =
+        match key with
+        | "accountExpires" | "badPasswordTime" | "creationTime"
+        | "lastLogoff" | "lastLogon" | "pwdLastSet"
+        | "lastLogonTimestamp" ->
+            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ returnTicksAfterEpoch value}")] |> Many) []
+        | "forceLogoff" | "lockoutDuration" | "lockOutObservationWindow" | "maxPwdAge"
+        | "minPwdAge"  ->
+            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ returnTimespan value} hrs")] |> Many) []
+        | _ -> node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
     
     
-    
+    ///
+    /// 
+    let handleInts key (value: int) =
+        
+        match key with
+        | "adminCount" ->
+            node ([MC (Color.Red, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
+        | "groupType" ->
+            groupTypeList // in LDAPConstants
+            |> List.filter (fun enum -> (value &&& int enum) = int enum)
+            |> List.map (fun enum -> enum.ToString())
+            |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
+        | "systemFlags" ->
+            systemFlagsList
+            |> List.filter (fun enum -> (value &&& int enum) = int enum)
+            |> List.map (fun enum -> enum.ToString())
+            |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
+        | "userAccountControl" ->
+            node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in (ADData.readUserAccountControl value) do yield node (MC (Color.White, $"{item}")) []]
+        | "sAMAccountType" ->
+            sAMAccountTypesList
+            |> List.filter (fun enum -> (value &&& int enum) = int enum)
+            |> List.map (fun enum -> enum.ToString())
+            |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
+        | "msDS-SupportedEncryptionTypes" ->
+            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
+        | _ -> node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
+        
     let private printFormatter key (datum: ADDataTypes) =
         match datum with
         | ADBool x ->
              node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
         | ADString x ->
-             node ([MC (Color.Blue, $"{key}(string): "); MC (Color.White, $"{x}")] |> Many) []
+             node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
         | ADInt x ->
-            node ([MC (Color.Blue, $"{key}(int): "); MC (Color.White, $"{x}")] |> Many) []
+            handleInts key x
         | ADInt64 x ->
-            node ([MC (Color.Blue, $"{key}(int64): "); MC (Color.White, $"{x}")] |> Many) []
+            handleInt64s key x
         | ADBytes x ->
             node ([MC (Color.Grey, $"{key}(bytes): "); MC (Color.White, $"{x |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
         | ADDateTime x ->

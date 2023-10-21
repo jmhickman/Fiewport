@@ -111,6 +111,18 @@ module PrettyPrinter =
             node ([MC (Color.Grey, $"{key}: "); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
     
+    let handleStrings key (value: string list) =
+        match key with
+        | "wellKnownObjects" |"otherWellKnownObjects" ->
+            node ([MC (Color.Blue, $"{key}(strings):")] |> Many)
+                [ for item in value do
+                      let splits = item.Split ':'
+                      let guid = Guid.Parse(splits[2])
+                      let dn = splits[3]
+                      yield node ([MC (Color.White, $"{guid} -> {dn}")] |> Many) [] ]
+        | _ ->
+            node ([MC (Color.Blue, $"{key}(strings):")] |> Many) [ for item in value do yield node ([MC (Color.White, $"{item}")] |> Many) [] ]
+    
     ///
     /// Does the heavy lifting of creating the formatting for all of the datatypes that Fiewport encounters.
     let private printFormatter key (datum: ADDataTypes) =
@@ -129,7 +141,7 @@ module PrettyPrinter =
         | ADDateTime x ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x.ToShortDateString ()}")] |> Many) []
         | ADStrings x ->
-            node ([MC (Color.Blue, $"{key}(strings):")] |> Many) [ for item in x do yield node ([MC (Color.White, $"{item}")] |> Many) [] ]
+            handleStrings key x
         | ADBytesList x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [ for item in x do yield handleBytes key item ]
         | ADDateTimes x ->

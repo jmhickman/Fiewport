@@ -1760,11 +1760,7 @@ module LDAPConstants =
               "522", "Clonable Controllers"
               "525", "Protected Users"
               "526", "Key Admins"
-              "527", "Enterprise Key Admins"
-              
-          
-            
-        ]
+              "527", "Enterprise Key Admins" ]
 
 
 

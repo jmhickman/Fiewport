@@ -32,9 +32,116 @@ module LDAPConstants =
           "TRUSTED_TO_AUTH_FOR_DELEGATION";
           "PARTIAL_SECRETS_ACCOUNT" ]
 
-    let typedKeys = [
-        ""
-    ]
+
+    let msdsSupportedEncryptionTypes =
+        [ "RC4_HMAC_MD5"
+          "DES_CBC_CRC"
+          "DES_CBC_MD5"
+          "DES_CBC_CRC, DES_CBC_MD5"
+          "RC4"
+          "DES_CBC_CRC, RC4"
+          "DES_CBC_MD5, RC4"
+          "DES_CBC_CRC, DES_CBC_MD5, RC4"
+          "AES128"
+          "DES_CBC_CRC, AES128"
+          "DES_CBC_MD5, AES128"
+          "DES_CBC_CRC, DES_CBC_MD5, AES128"
+          "RC4, AES128"
+          "DES_CBC_CRC, RC4, AES128"
+          "DES_CBC_MD5, RC4, AES128"
+          "DES_CBC_CBC, DES_CBC_MD5, RC4, AES128"
+          "AES256"
+          "DES_CBC_CRC, AES256"
+          "DES_CBC_MD5, AES256"
+          "DES_CBC_CRC, DES_CBC_MD5, AES256"
+          "RC4, AES256"
+          "DES_CBC_CRC, RC4, AES256"
+          "DES_CBC_MD5, RC4, AES256"
+          "DES_CBC_CRC, DES_CBC_MD5, RC4, AES256"
+          "AES 128, AES256"
+          "DES_CBC_CRC, AES128, AES256"
+          "DES_CBC_MD5, AES128, AES256"
+          "DES_CBC_MD5, DES_CBC_MD5, AES128, AES256"
+          "RC4, AES128, AES256"
+          "DES_CBC_CRC, RC4, AES128, AES256"
+          "DES_CBC_MD5, RC4, AES128, AES256"
+          "DES_CBC_CRC, DES_CBC_MD5, RC4-HMAC, AES128-CTS-HMAC-SHA1-96, AES256-CTS-HMAC-SHA1-96" ]
+    
+    type GroupType =
+        | System = 1
+        | Global = 2
+        | DomainLocal = 4
+        | Universal = 8
+        | APP_BASIC = 16
+        | APP_QUERY =  32
+        | SECURITY = -2147483648
+
+    let groupTypeList =
+        [ GroupType.System
+          GroupType.DomainLocal
+          GroupType.Global
+          GroupType.Universal
+          GroupType.APP_BASIC
+          GroupType.APP_QUERY
+          GroupType.SECURITY ]
+
+
+    type SystemFlags =
+        | ATTRIBUTE_NOT_REPLICATED = 1
+        | ATTRIBUTE_WILL_REPLICATE = 2
+        | ATTRIBUTE_IS_CONSTRUCTED = 4
+        | CATEGORY_ONE_OBJECT = 16
+        | DELETED_IMMEDIATELY = 33554432
+        | CANNOT_BE_MOVED = 67108864
+        | CANNOT_BE_RENAMED = 134217728
+        | OBJECT_MOVABLE_WITH_RESTRICTIONS = 268435456
+        | OBJECT_CANNOT_MOVE = 536870912
+        | OBJECT_CANNOT_BE_RENAMED = 1073741824
+        | CANNOT_BE_DELETED = -2147483648
+        
+        
+    let systemFlagsList =
+        [ SystemFlags.ATTRIBUTE_NOT_REPLICATED
+          SystemFlags.ATTRIBUTE_WILL_REPLICATE
+          SystemFlags.ATTRIBUTE_IS_CONSTRUCTED
+          SystemFlags.CATEGORY_ONE_OBJECT
+          SystemFlags.DELETED_IMMEDIATELY
+          SystemFlags.CANNOT_BE_MOVED
+          SystemFlags.CANNOT_BE_RENAMED
+          SystemFlags.OBJECT_MOVABLE_WITH_RESTRICTIONS
+          SystemFlags.OBJECT_CANNOT_MOVE
+          SystemFlags.OBJECT_CANNOT_BE_RENAMED
+          SystemFlags.CANNOT_BE_DELETED ]
+        
+        
+    type SAMAccountTypes =
+        | SAM_DOMAIN_OBJECT = 0x0
+        | SAM_GROUP_OBJECT = 0x10000000
+        | SAM_NON_SECURITY_GROUP_OBJECT = 0x10000001
+        | SAM_ALIAS_OBJECT = 0x20000000
+        | SAM_NON_SECURITY_ALIAS_OBJECT = 0x20000001
+        | SAM_USER_OBJECT_OR_NORMAL_USER_ACCOUNT = 0x30000000 // Not sure which of these to use, just combine them
+        //| SAM_NORMAL_USER_ACCOUNT = 0x30000000
+        | SAM_MACHINE_ACCOUNT = 0x30000001
+        | SAM_TRUST_ACCOUNT = 0x30000002
+        | SAM_APP_BASIC_GROUP = 0x40000000
+        | SAM_APP_QUERY_GROUP = 0x40000001
+        | SAM_ACCOUNT_TYPE_MAX = 0x7fffffff
+
+
+    let sAMAccountTypesList =
+        [ SAMAccountTypes.SAM_DOMAIN_OBJECT
+          SAMAccountTypes.SAM_GROUP_OBJECT
+          SAMAccountTypes.SAM_NON_SECURITY_GROUP_OBJECT
+          SAMAccountTypes.SAM_ALIAS_OBJECT
+          SAMAccountTypes.SAM_NON_SECURITY_ALIAS_OBJECT
+          SAMAccountTypes.SAM_USER_OBJECT_OR_NORMAL_USER_ACCOUNT          
+          SAMAccountTypes.SAM_MACHINE_ACCOUNT
+          SAMAccountTypes.SAM_TRUST_ACCOUNT
+          SAMAccountTypes.SAM_APP_BASIC_GROUP
+          SAMAccountTypes.SAM_APP_QUERY_GROUP
+          SAMAccountTypes.SAM_ACCOUNT_TYPE_MAX ]
+    
     ///
     /// <remarks>
     /// A full list of all AD attributes, as pulled from

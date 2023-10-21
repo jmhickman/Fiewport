@@ -62,8 +62,11 @@ module ADData =
             
          static member readUserAccountControl bits =
              [for i in 0..31 do if ((bits >>> i) &&& 1) = 1 then yield uacPropertyFlags[i]]
-             |> String.concat ", "
-             |> fun s -> $"{bits} -> {s}"             
+            
              
          static member readSID bytes =
              SecurityIdentifier(bytes, 0) |> fun sid -> sid.Value
+             
+             
+         static member readmsDSSupportedEncryptionTypes bits =
+             msdsSupportedEncryptionTypes[bits]

@@ -81,6 +81,19 @@ module PrettyPrinter =
             node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
         | _ -> node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
         
+    
+    ///
+    /// Bytes values appear in the LDAP results as pure encodings of various pieces of data. This function handles these
+    /// cases.
+    /// 
+    let handleBytes key (value: byte array) =
+        match key with
+        | "objectSid" ->
+            node ([MC (Color.Grey, $"{key}: "); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
+        | _ ->
+            node ([MC (Color.Grey, $"{key}: "); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
+    
+    
     ///
     /// Does the heavy lifting of creating the formatting for all of the datatypes that Fiewport encounters.
     let private printFormatter key (datum: ADDataTypes) =
@@ -94,7 +107,7 @@ module PrettyPrinter =
         | ADInt64 x ->
             handleInt64s key x
         | ADBytes x ->
-            node ([MC (Color.Grey, $"{key}(bytes): "); MC (Color.White, $"{x |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
+            handleBytes key x
         | ADDateTime x ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x.ToShortDateString ()}")] |> Many) []
         | ADStrings x ->

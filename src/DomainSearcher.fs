@@ -72,7 +72,7 @@ module DomainSearcher =
             | x when x = typeof<DateTime> -> unbox<DateTime> item |> ADDateTime
             | x when x = typeof<byte array> -> unbox<byte array> item |> ADBytes
             | x when x = typeof<bool> -> unbox<bool> item |> ADBool
-            | _ -> "hit singleton type that didn't match: " + detectedType.ToString() |> ADString
+            | _ -> "***HIT COLLECTION TYPE THAT DIDN'T MATCH: " + detectedType.ToString() |> ADString
         | _ ->
             match detectedType with
             | x when x = typeof<DateTime> ->
@@ -101,11 +101,8 @@ module DomainSearcher =
     let private stripObjsAndEmit searchType searchConfig (map: Map<string, ADDataTypes>) =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
-        let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)
-        let mutable ntsd = ""
-        if map.ContainsKey "nTSecurityDescriptor" then
-            ntsd <- map.Item "nTSecurityDescriptor" |> ADData.unwrapADBytes |> ADData.readSecurityDescriptor
-        ["objectClass"; "objectCategory"; "objectGUID"; "nTSecurityDescriptor"]
+        let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)        
+        ["objectClass"; "objectCategory"; "objectGUID";]
         |> List.fold (fun (lessMap: Map<string, ADDataTypes>) prop -> lessMap.Remove prop ) map
         |> fun map ->
                 { searchType = searchType
@@ -113,7 +110,6 @@ module DomainSearcher =
                   objectClass = objcls
                   objectCategory = objcat
                   objectGUID = objguid
-                  nTSecurityDescriptor = ntsd
                   lDAPSearcherError = None
                   lDAPData = map }
     
@@ -160,7 +156,6 @@ module DomainSearcher =
                        objectClass = [""]
                        objectCategory = "Failed Search"
                        objectGUID = Guid.Empty
-                       nTSecurityDescriptor =  ""
                        lDAPSearcherError = exn.Message |> Some
                        lDAPData = Map.empty<string,ADDataTypes> }]
             | Error (e, searchConfig) ->                
@@ -169,6 +164,5 @@ module DomainSearcher =
                    objectClass = [""]
                    objectCategory = "Failed Search"
                    objectGUID = Guid.Empty
-                   nTSecurityDescriptor =  ""
                    lDAPSearcherError = decodeLDAPSearcherError e |> Some
                    lDAPData = Map.empty<string,ADDataTypes> }]

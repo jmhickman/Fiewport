@@ -89,7 +89,24 @@ module PrettyPrinter =
     let handleBytes key (value: byte array) =
         match key with
         | "objectSid" ->
-            node ([MC (Color.Grey, $"{key}: "); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
+            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
+        | "nTSecurityDescriptor" ->
+            let descriptor = ADData.readSecurityDescriptor value
+            node ([MC (Color.Blue, $"{key}: ")] |> Many)
+                [node
+                    ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}");NL
+                        MC (Color.White, $"group: {matchKnownSids descriptor.group}");NL
+                        MC (Color.White, "DACLs") ] |> Many)
+                        [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) [] ] ]
+        | "userCertificate" ->
+            let issue, sub, pubkey = ADData.readX509Cert value
+            node
+                ([MC (Color.Blue, $"{key}: ")] |> Many)
+                [node
+                     ( [ MC (Color.White, $"Issuer: {issue}"); NL
+                         MC (Color.White, $"Subject: {sub}"); NL
+                         MC (Color.White, $"PublicKey: {pubkey}") ] |> Many)
+                         [] ]
         | _ ->
             node ([MC (Color.Grey, $"{key}: "); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
@@ -136,7 +153,7 @@ module PrettyPrinter =
             [ MC (Color.Gold1, $"Object Category: {containers}"); NL
               MC (Color.Grey, $"Domain Components: {domainComponent}"); NL
               MC (Color.Gold1, $"""Object Classes: {msg.objectClass |> String.concat ", "}"""); NL
-              MC (Color.Wheat1, $"objectGUID: {msg.objectGUID}"); NL
+              MC (Color.Gold1, $"objectGUID: {msg.objectGUID}"); NL
               tree (V "attributes") (_data |> List.map (fun (key, datum) -> printFormatter key datum)) ]
             |> Many
             |> toConsole
@@ -180,5 +197,5 @@ module PrettyPrinter =
             pPrinter.Post r
             // I have to sleep here because otherwise the main thread risks exiting before the printer prints.
             // I tried forcing synchronous execution, but that didn't seem to do anything at all about the issue.
-            System.Threading.Thread.Sleep 4) 
+            System.Threading.Thread.Sleep 40) 
         

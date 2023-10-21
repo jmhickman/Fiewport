@@ -74,6 +74,12 @@ module Types =
         | GetGroupsWithLocalAdminRights
     
     
+    type HumanSDDL =
+        { owner: string
+          group: string
+          dacl: string list }
+    
+    
     ///
     /// <summary>
     /// Represents the result of an LDAP search. AD has 1507 unique attributes, and that's
@@ -87,7 +93,6 @@ module Types =
           objectClass: string list
           objectCategory: string
           objectGUID: Guid
-          nTSecurityDescriptor: string
           lDAPSearcherError: string option
           lDAPData: Map<string, ADDataTypes> }
         

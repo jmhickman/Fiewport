@@ -118,7 +118,8 @@ module PrettyPrinter =
         | ADBool x ->
              node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
         | ADString x ->
-             node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
+             if x.StartsWith "***HIT COLLECTION " then node ([MC (Color.Red, x)] |> Many ) [] 
+             else node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
         | ADInt x ->
             handleInts key x
         | ADInt64 x ->
@@ -130,7 +131,7 @@ module PrettyPrinter =
         | ADStrings x ->
             node ([MC (Color.Blue, $"{key}(strings):")] |> Many) [ for item in x do yield node ([MC (Color.White, $"{item}")] |> Many) [] ]
         | ADBytesList x ->
-            node ([MC (Color.Blue, $"{key}(byte array list):")] |> Many) [ for item in x do yield node ([MC (Color.White, $"{item |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}")] |> Many) [] ]
+            node ([MC (Color.Blue, $"{key}:")] |> Many) [ for item in x do yield handleBytes key item ]
         | ADDateTimes x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]  
     

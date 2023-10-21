@@ -120,8 +120,7 @@ module LDAPConstants =
         | SAM_NON_SECURITY_GROUP_OBJECT = 0x10000001
         | SAM_ALIAS_OBJECT = 0x20000000
         | SAM_NON_SECURITY_ALIAS_OBJECT = 0x20000001
-        | SAM_USER_OBJECT_OR_NORMAL_USER_ACCOUNT = 0x30000000 // Not sure which of these to use, just combine them
-        //| SAM_NORMAL_USER_ACCOUNT = 0x30000000
+        | SAM_USER_OBJECT_OR_NORMAL_ACCOUNT = 0x30000000 // Not sure which of these to use, just combine them
         | SAM_MACHINE_ACCOUNT = 0x30000001
         | SAM_TRUST_ACCOUNT = 0x30000002
         | SAM_APP_BASIC_GROUP = 0x40000000
@@ -135,7 +134,7 @@ module LDAPConstants =
           SAMAccountTypes.SAM_NON_SECURITY_GROUP_OBJECT
           SAMAccountTypes.SAM_ALIAS_OBJECT
           SAMAccountTypes.SAM_NON_SECURITY_ALIAS_OBJECT
-          SAMAccountTypes.SAM_USER_OBJECT_OR_NORMAL_USER_ACCOUNT          
+          SAMAccountTypes.SAM_USER_OBJECT_OR_NORMAL_ACCOUNT          
           SAMAccountTypes.SAM_MACHINE_ACCOUNT
           SAMAccountTypes.SAM_TRUST_ACCOUNT
           SAMAccountTypes.SAM_APP_BASIC_GROUP

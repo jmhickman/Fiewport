@@ -142,6 +142,50 @@ module LDAPConstants =
           SAMAccountTypes.SAM_APP_QUERY_GROUP
           SAMAccountTypes.SAM_ACCOUNT_TYPE_MAX ]
     
+    
+    type ActiveDirectoryRights =
+        | AccessSystemSecurity = 16777216
+        | CreateChild = 1 
+        | Delete = 65536 
+        | DeleteChild = 2 
+        | DeleteTree = 64 
+        | ExtendedRight = 256 
+        | GenericAll = 983551 
+        | GenericExecute = 131076 
+        | GenericRead = 131220 
+        | GenericWrite = 131112 
+        | ListChildren = 4 
+        | ListObject = 128 
+        | ReadControl = 1310
+        | ReadProperty = 16
+        | Self = 8
+        | Synchronize = 1048576
+        | WriteDacl = 262144
+        | WriteOwner = 524288
+        | WriteProperty = 32
+        
+        
+    let activeDirectoryRightsList =
+        [ ActiveDirectoryRights.AccessSystemSecurity
+          ActiveDirectoryRights.CreateChild 
+          ActiveDirectoryRights.Delete 
+          ActiveDirectoryRights.DeleteChild 
+          ActiveDirectoryRights.DeleteTree 
+          ActiveDirectoryRights.ExtendedRight 
+          ActiveDirectoryRights.GenericAll 
+          ActiveDirectoryRights.GenericExecute 
+          ActiveDirectoryRights.GenericRead 
+          ActiveDirectoryRights.GenericWrite 
+          ActiveDirectoryRights.ListChildren 
+          ActiveDirectoryRights.ListObject 
+          ActiveDirectoryRights.ReadControl
+          ActiveDirectoryRights.ReadProperty
+          ActiveDirectoryRights.Self
+          ActiveDirectoryRights.Synchronize
+          ActiveDirectoryRights.WriteDacl
+          ActiveDirectoryRights.WriteOwner
+          ActiveDirectoryRights.WriteProperty ]
+    
     ///
     /// <remarks>
     /// A full list of all AD attributes, as pulled from
@@ -1661,3 +1705,69 @@ module LDAPConstants =
           "wWWHomePage"
           "x121Address"
           "x500uniqueIdentifier" ]
+        
+        
+    let wellKnownSids =
+       Map [ "S-1-0", "Null"
+             "S-1-1", "World"
+             "S-1-2", "Local"
+             "S-1-3-0", "Creator Owner"
+             "S-1-3-1", "Creator Group"
+             "S-1-3-2", "Creator Owner Server"
+             "S-1-5-32-544", "Administrator"
+             "S-1-5-32-546", "Guest"
+             "S-1-5-32-548", "Account Operators"
+             "S-1-5-32-549", "Server Operators"
+             "S-1-5-32-550", "Print Operators"
+             "S-1-5-32-551", "Backup Operators"
+             "S-1-5-32-552", "Replicators"
+             "S-1-5-32-554", "Pre-Windows 2000"
+             "S-1-5-32-555", "Remote Desktop Users"
+             "S-1-5-32-556", "Network Configuration Operators"
+             "S-1-5-32-562", "Distributed COM Users"
+             "S-1-5-32-578", "Hyper-V Administrators"
+             "S-1-5-32-580", "Remote Management Users"
+             "S-1-5-32-547", "Power Users"
+             "S-1-5-32-545", "Users"
+             "S-1-5-11", "Authenticated Users"
+             "S-1-5-6", "Service"
+             "S-1-5-20", "Network Service"
+             "S-1-5-18", "Local System"
+             "S-1-5-19", "Local Service"
+             "S-1-5-14", "Remote Interactive Logon"
+             "S-1-5-10", "Self"
+             "S-1-5-9", "Enterprise Domain Controllers"
+             "S-1-5-7", "Anonymous Logon"
+             "S-1-5-4", "Interactive"
+             "S-1-5-3", "Batch"
+             "S-1-5-2", "Network" ]
+
+
+    let networkSids =
+        Map [ "500", "Administrator"
+              "501", "Guest"
+              "502", "krbtgt"
+              "512", "Domain Admins"
+              "513", "Domain Users"
+              "514", "Domain Guests"
+              "515", "Domain Computers"
+              "516", "Domain Controllers"
+              "517", "Cert Publishers"
+              "518", "Schema Admins"
+              "519", "Enterprise Admins"
+              "520", "Group Policy Creator Owners"
+              "521", "Read-Only Domain Controllers"
+              "522", "Clonable Controllers"
+              "525", "Protected Users"
+              "526", "Key Admins"
+              "527", "Enterprise Key Admins"
+              
+          
+            
+        ]
+
+
+
+
+
+        

@@ -18,7 +18,8 @@ module PrettyPrinter =
 
     ///
     /// MS uses int64s to store these 'tick' values, instead of using unix timestamps like everyone else.
-    /// Handles the max-value case and otherwise returns a date stamp
+    /// Handles the max-value case and otherwise returns a date stamp.
+    /// 
     let returnTicksAfterEpoch ticks =
         match ticks with
         | Int64.MaxValue -> "no expiry"
@@ -51,9 +52,11 @@ module PrettyPrinter =
     
     
     ///
+    /// Some int values encode data, usually a enum/bitfield some sort. This function handles those cases, and passes
+    /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
+    /// LDAP attributes to find all the everything. I'll add handlers as cases come up.
     /// 
-    let handleInts key (value: int) =
-        
+    let handleInts key (value: int) =        
         match key with
         | "adminCount" ->
             node ([MC (Color.Red, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
@@ -78,6 +81,8 @@ module PrettyPrinter =
             node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
         | _ -> node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
         
+    ///
+    /// Does the heavy lifting of creating the formatting for all of the datatypes that Fiewport encounters.
     let private printFormatter key (datum: ADDataTypes) =
         match datum with
         | ADBool x ->
@@ -99,6 +104,10 @@ module PrettyPrinter =
         | ADDateTimes x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]  
     
+    ///
+    /// Simple MailboxProcessor for handling printing. All console output from the library flows through here, so there
+    /// is no locking. Users might stomp on this when doing their own printing in a script, but w/e.
+    /// 
     let private printer (mbox: MailboxProcessor<LDAPSearchResult>) =
         
         let rec ringRing () = async {
@@ -123,7 +132,10 @@ module PrettyPrinter =
         }
 
         ringRing ()
-        
+    
+    
+    ///
+    /// Starts the MailboxProcessor 
     let private pPrinter =
         // Stupid bodge to deal with nonsense. Spectre will not emit any markup text 
         // from inside the MailboxProcessor without first printing it _outside_ the mailbox.
@@ -132,6 +144,24 @@ module PrettyPrinter =
         MailboxProcessor.Start printer
         
     
+    ///
+    /// <summary>
+    /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
+    /// use this. Just stick it on the end of whatever pipeline you have.
+    /// <code>
+    /// let config = { properties = [||]
+    ///                filter = "objectCategory=*"
+    ///                scope = SearchScope.Subtree
+    ///                ldapDomain = "LDAP://somedomain.local"
+    ///                username = "username"
+    ///                password = "password" }
+    /// [config]
+    /// |> Searcher.getDomainObjects
+    /// |> Filter.attributePresent "msDS-SupportedEncryptionTypes"
+    /// |> PrettyPrinter.prettyPrint
+    /// </code>
+    /// </summary>
+    /// 
     let public prettyPrint (res: LDAPSearchResult list) =
         res |> List.iter (fun r ->
             pPrinter.Post r

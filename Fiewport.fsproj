@@ -21,6 +21,7 @@
         <Compile Include="src\Tee.fs" />
         <Compile Include="src\DomainSearcher.fs" />
         <Compile Include="src\Searcher.fs" />
+        <None Include="ImportFiewport.fsx" />
     </ItemGroup>
 
     <ItemGroup>

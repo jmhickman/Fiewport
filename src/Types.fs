@@ -86,9 +86,6 @@ module Types =
     type LDAPSearchResult =
         { searchType: LDAPSearchType 
           searchConfig: DirectorySearcherConfig
-          objectClass: string list
-          objectCategory: string
-          objectGUID: Guid
           lDAPSearcherError: string option
           lDAPData: Map<string, ADDataTypes> }
         

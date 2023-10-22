@@ -21,13 +21,14 @@ module DomainSearcher =
         new DirectoryEntry(lDAPEndpoint, username, password)
 
 
+
+    
     /// 
     /// Creates a DirectorySearcher using an existing connection to an LDAP endpoint.
     let internal getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
-        |> fun ds ->
-            ds.SecurityMasks <-
-                SecurityMasks.Dacl ||| SecurityMasks.Group ||| SecurityMasks.Owner
+        |> fun ds ->            
+            ds.SecurityMasks <- SecurityMasks.Dacl ||| SecurityMasks.Group ||| SecurityMasks.Owner
             ds        
 
 
@@ -82,16 +83,9 @@ module DomainSearcher =
     
     ///
     /// Removes the four record attrs from the Map that appear in the 'root' of the record.
-    let private setRecordAttrs searchType searchConfig (map: Map<string, ADDataTypes>) =
-        let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
-        let objcat = map.Item "objectCategory" |> ADData.unwrapADString
-        let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)        
-        
+    let private setRecordAttrs searchType searchConfig (map: Map<string, ADDataTypes>) =       
         { searchType = searchType
           searchConfig = searchConfig 
-          objectClass = objcls
-          objectCategory = objcat
-          objectGUID = objguid
           lDAPSearcherError = None
           lDAPData = map }
     
@@ -113,7 +107,7 @@ module DomainSearcher =
     /// Error message injection
     let private decodeLDAPSearcherError error =
         match error with
-        | ServerConnectionError s -> "ServerConnectionError: " + s
+        | ServerConnectionError s -> "ServerConnectionError: " + s + " Check your connection string and user/pass"
         | UnknownError80005000 s -> "UnknownError80005000: " + s
         | NoSuchObject s -> "NoSuchObject: " + s
         | InvalidDNSyntax s -> "InvalidDNSyntax: " + s
@@ -123,26 +117,11 @@ module DomainSearcher =
     ///
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
     let internal createLDAPSearchResults searchType (results: IntermediateSearchResultsCollection) = 
-        
         match results with
             | Ok (results', searchConfig) ->
-                // This try/with is necessary because (for whatever reason) invalid filters blow up here, instead of
-                // during the search. I don't know if this is some hidden lazy eval or what, but that's what happens.
-                try
-                    [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
-                with exn ->
-                    [{ searchType = searchType
-                       searchConfig = searchConfig 
-                       objectClass = [""]
-                       objectCategory = "Failed Search"
-                       objectGUID = Guid.Empty
-                       lDAPSearcherError = exn.Message |> Some
-                       lDAPData = Map.empty<string,ADDataTypes> }]
+                [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
             | Error (e, searchConfig) ->                
                 [{ searchType = searchType
                    searchConfig = searchConfig
-                   objectClass = [""]
-                   objectCategory = "Failed Search"
-                   objectGUID = Guid.Empty
                    lDAPSearcherError = decodeLDAPSearcherError e |> Some
                    lDAPData = Map.empty<string,ADDataTypes> }]

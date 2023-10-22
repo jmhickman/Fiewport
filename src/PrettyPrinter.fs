@@ -81,20 +81,22 @@ module PrettyPrinter =
         | "nTSecurityDescriptor" ->
             let descriptor = ADData.readSecurityDescriptor value
             node ([MC (Color.Blue, $"{key}:")] |> Many)
-                [node
+                [ node
                     ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}");NL
                         MC (Color.White, $"group: {matchKnownSids descriptor.group}");NL
                         MC (Color.White, "DACLs (CommonACE)") ] |> Many)
-                        [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) [] ] ]
+                        [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) []] ]
         | "userCertificate" ->
             let issue, sub, pubkey = ADData.readX509Cert value
             node
                 ([MC (Color.Blue, $"{key}:")] |> Many)
-                [node
+                [ node
                      ( [ MC (Color.White, $"Issuer: {issue}"); NL
                          MC (Color.White, $"Subject: {sub}"); NL
                          MC (Color.White, $"PublicKey: {pubkey}") ] |> Many)
                          [] ]
+        | "objectGUID" ->
+            node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value |> Guid}") ] |> Many) []
         | _ ->
             node ([MC (Color.Grey, $"{key}:"); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
@@ -111,7 +113,7 @@ module PrettyPrinter =
                       let dn = splits[3]
                       yield node ([MC (Color.White, $"{guid} -> {dn}")] |> Many) [] ]
         | _ ->
-            node ([MC (Color.Blue, $"{key}:")] |> Many) [ for item in value do yield node ([MC (Color.White, $"{item}")] |> Many) [] ]
+            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in value do yield node ([MC (Color.White, $"{item}")] |> Many) []]
     
     ///
     /// Does the heavy lifting of creating the formatting for all of the datatypes that Fiewport encounters.
@@ -133,7 +135,7 @@ module PrettyPrinter =
         | ADStringList x ->
             handleStrings key x
         | ADBytesList x ->
-            node ([MC (Color.Blue, $"{key}:")] |> Many) [ for item in x do yield handleBytes key item ]
+            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield handleBytes key item]
         | ADDateTimeList x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]  
     
@@ -147,23 +149,22 @@ module PrettyPrinter =
             let! msg = mbox.Receive ()
             let keys = [for key in msg.lDAPData.Keys do yield key]
             let _data = keys |> List.map (fun key -> key, msg.lDAPData[key])
-            
-            let domainComponent =
-                msg.objectCategory.Split ',' |> Array.filter (fun p -> p.StartsWith("DC=")) |> String.concat ","
-            let containers =
-                msg.objectCategory.Split ',' |> Array.filter (fun p -> p.StartsWith("CN=")) |> String.concat ","
-            
-            [ MC (Color.Gold1, $"Object Category: {containers}"); NL
-              MC (Color.Grey, $"Domain Components: {domainComponent}"); NL
-              MC (Color.Gold1, $"""Object Classes: {msg.objectClass |> String.concat ", "}"""); NL
-              MC (Color.Gold1, $"objectGUID: {msg.objectGUID}"); NL
-              tree (V "attributes") (_data |> List.map (fun (key, datum) -> printFormatter key datum)) ]
-            |> Many
-            |> toConsole
-            
+                        
+            match msg.lDAPSearcherError with
+            | None ->
+                [ MCD (Color.Blue, [Decoration.Underline], $"===Search: {msg.searchType}======"); NL
+                  MC (Color.Wheat1, $"**Search config: {msg.searchConfig.filter}"); NL
+                  tree (V "attributes") (_data |> List.map (fun (key, datum) -> printFormatter key datum)) ]
+                |> Many
+                |> toConsole
+            | Some err ->
+                [ MC (Color.Wheat1, $"**Search config: {msg.searchConfig.ldapDomain}; {msg.searchConfig.username}; {msg.searchConfig.filter}"); NL
+                  MC (Color.Red, err ) ]
+                |> Many
+                |> toConsole
             do! ringRing ()
         }
-
+        
         ringRing ()
     
     
@@ -172,8 +173,8 @@ module PrettyPrinter =
     let private pPrinter =
         // Stupid bodge to deal with nonsense. Spectre will not emit any markup text 
         // from inside the MailboxProcessor without first printing it _outside_ the mailbox.
-        // It doesn't make any sense. So I print a black line. 🙄🙄
-        Many [MC (Color.Black, "")] |> toConsole       
+        // It doesn't make any sense. So I print a blank line. 🙄🙄
+        BL |> toConsole       
         MailboxProcessor.Start printer
         
     

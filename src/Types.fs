@@ -15,19 +15,15 @@ module Types =
     /// </remarks>
     /// 
     type ADDataTypes =
-        | ADInt64 of Int64 // confirmed
-        | ADInt of int // confirmed
-        | ADBool of bool // confirmed
-        | ADBytes of byte array // confirmed
-        | ADString of string // confirmed
-        | ADDateTime of DateTime // confirmed
-        | ADStrings of string list // confirmed
-        //| ADInt64List of Int64 list // unconfirmed datatype
-        //| ADIntList of int list // unconfirmed datatype
-        //| ADBoolList of bool list // unconfirmed datatype
-        | ADDateTimes of DateTime list // confirmed
-        | ADBytesList of byte array list // unconfirmed datatype
-        //| ADComObject of ??  saw this referenced in some docs, haven't seen it yet
+        | ADInt64 of Int64 
+        | ADInt of int 
+        | ADBool of bool 
+        | ADBytes of byte array 
+        | ADString of string 
+        | ADDateTime of DateTime 
+        | ADStrings of string list 
+        | ADDateTimes of DateTime list 
+        | ADBytesList of byte array list
     
     ///
     /// <summary>Defines a DirectorySearcher aside from the DirectoryEntry</summary>

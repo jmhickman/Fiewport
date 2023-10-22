@@ -98,20 +98,18 @@ module DomainSearcher =
     
     ///
     /// Removes the four record attrs from the Map that appear in the 'root' of the record.
-    let private stripObjsAndEmit searchType searchConfig (map: Map<string, ADDataTypes>) =
+    let private setRecordAttrs searchType searchConfig (map: Map<string, ADDataTypes>) =
         let objcls = map.Item "objectClass" |> ADData.unwrapADStrings
         let objcat = map.Item "objectCategory" |> ADData.unwrapADString
         let objguid = map.Item "objectGUID" |> ADData.unwrapADBytes |> fun a -> Guid(a)        
-        ["objectClass"; "objectCategory"; "objectGUID";]
-        |> List.fold (fun (lessMap: Map<string, ADDataTypes>) prop -> lessMap.Remove prop ) map
-        |> fun map ->
-                { searchType = searchType
-                  searchConfig = searchConfig 
-                  objectClass = objcls
-                  objectCategory = objcat
-                  objectGUID = objguid
-                  lDAPSearcherError = None
-                  lDAPData = map }
+        
+        { searchType = searchType
+          searchConfig = searchConfig 
+          objectClass = objcls
+          objectCategory = objcat
+          objectGUID = objguid
+          lDAPSearcherError = None
+          lDAPData = map }
     
     
     ///
@@ -126,7 +124,7 @@ module DomainSearcher =
         |> List.fold(fun mapData attr ->
             // create an empty Map to use as accumulator for the fold, stuffing it with unboxed values 
             mapData |> Map.add attr (unboxLDAPValue attr searchResult)) Map.empty<string, ADDataTypes>
-        |> stripObjsAndEmit searchType searchConfig
+        |> setRecordAttrs searchType searchConfig
     
     
     ///

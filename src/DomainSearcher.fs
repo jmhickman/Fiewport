@@ -27,7 +27,7 @@ module DomainSearcher =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
         |> fun ds ->
             ds.SecurityMasks <-
-                SecurityMasks.Dacl ||| SecurityMasks.Sacl ||| SecurityMasks.Group ||| SecurityMasks.Owner
+                SecurityMasks.Dacl ||| SecurityMasks.Group ||| SecurityMasks.Owner
             ds        
 
 

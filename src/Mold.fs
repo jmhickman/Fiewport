@@ -11,8 +11,8 @@ module Mold =
         | ADInt64 i -> $"{i}"
         | ADString s -> s
         | ADDateTime d -> d.ToShortDateString ()
-        | ADStrings sList -> sList |> String.concat "; "
-        | ADDateTimes dList -> dList |> List.map (fun d -> d.ToShortDateString ()) |> String.concat "; "
+        | ADStringList sList -> sList |> String.concat "; "
+        | ADDateTimeList dList -> dList |> List.map (fun d -> d.ToShortDateString ()) |> String.concat "; "
         | ADBytesList bList -> bList |> List.map (fun b -> b |> Array.fold (fun acc b' -> acc + $"{b':x2}") "") |> String.concat ", "
     
     type Mold = class end

@@ -141,11 +141,11 @@ module PrettyPrinter =
             handleBytes key x
         | ADDateTime x ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x.ToShortDateString ()}")] |> Many) []
-        | ADStrings x ->
+        | ADStringList x ->
             handleStrings key x
         | ADBytesList x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [ for item in x do yield handleBytes key item ]
-        | ADDateTimes x ->
+        | ADDateTimeList x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]  
     
     ///

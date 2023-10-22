@@ -80,13 +80,13 @@ module DomainSearcher =
                 |> Seq.cast<DateTime>
                 |> Seq.map unbox<DateTime>
                 |> List.ofSeq
-                |> ADDateTimes
+                |> ADDateTimeList
             | x when x = typeof<string> ->
                 searchResult.Properties.Item(attrName)
                 |> Seq.cast<string>
                 |> Seq.map unbox<string>
                 |> List.ofSeq
-                |> ADStrings
+                |> ADStringList
             | x when x = typeof<byte array> ->
                 searchResult.Properties.Item(attrName)
                 |> Seq.cast<byte array>

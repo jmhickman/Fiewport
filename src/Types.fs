@@ -21,8 +21,8 @@ module Types =
         | ADBytes of byte array 
         | ADString of string 
         | ADDateTime of DateTime 
-        | ADStrings of string list 
-        | ADDateTimes of DateTime list 
+        | ADStringList of string list 
+        | ADDateTimeList of DateTime list 
         | ADBytesList of byte array list
     
     ///

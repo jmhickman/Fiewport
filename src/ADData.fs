@@ -63,12 +63,12 @@ module ADData =
      
      static member unwrapADStrings adStrings =
          match adStrings with
-         | ADStrings x -> x
+         | ADStringList x -> x
          | _ -> [""]
          
      static member unwrapADDateTimes unwrapADDateTime =
          match unwrapADDateTime with
-         | ADDateTimes x -> x
+         | ADDateTimeList x -> x
          | _ -> [DateTime.UnixEpoch]
 
      static member readSecurityDescriptor bytes =

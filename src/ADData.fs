@@ -9,8 +9,6 @@ open System.Security.Principal
 
 [<AutoOpen>]
 module ADData =
-    
-
      
     let getAccessFlags accessMask =
         activeDirectoryRightsList

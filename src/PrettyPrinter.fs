@@ -33,7 +33,8 @@ module PrettyPrinter =
         match ticks with
         | Int64.MinValue -> "No limit"
         | _ -> TimeSpan.FromTicks (abs ticks) |> fun time -> time.TotalHours.ToString ()
-    
+
+
     ///
     /// Some int64 values encode data, usually a timestamp of some sort. This function handles those cases, and passes
     /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
@@ -44,11 +45,11 @@ module PrettyPrinter =
         | "accountExpires" | "badPasswordTime" | "creationTime"
         | "lastLogoff" | "lastLogon" | "pwdLastSet"
         | "lastLogonTimestamp" ->
-            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ returnTicksAfterEpoch value}")] |> Many) []
+            node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ returnTicksAfterEpoch value}")] |> Many) []
         | "forceLogoff" | "lockoutDuration" | "lockOutObservationWindow" | "maxPwdAge"
         | "minPwdAge"  ->
-            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ returnTimespan value} hrs")] |> Many) []
-        | _ -> node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
+            node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ returnTimespan value} hrs")] |> Many) []
+        | _ -> node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
     
     
     ///
@@ -59,27 +60,27 @@ module PrettyPrinter =
     let handleInts key (value: int) =        
         match key with
         | "adminCount" ->
-            node ([MC (Color.Red, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
+            node ([MC (Color.Red, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
         | "groupType" ->
             groupTypeList // in LDAPConstants
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
-            |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
+            |> fun enum -> node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
         | "systemFlags" ->
             systemFlagsList
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
-            |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
+            |> fun enum -> node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
         | "userAccountControl" ->
-            node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in (ADData.readUserAccountControl value) do yield node (MC (Color.White, $"{item}")) []]
+            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in (ADData.readUserAccountControl value) do yield node (MC (Color.White, $"{item}")) []]
         | "sAMAccountType" ->
             sAMAccountTypesList
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
             |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
         | "msDS-SupportedEncryptionTypes" ->
-            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
-        | _ -> node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{value}")] |> Many) []
+            node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
+        | _ -> node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
         
     
     ///
@@ -89,10 +90,10 @@ module PrettyPrinter =
     let handleBytes key (value: byte array) =
         match key with
         | "objectSid" ->
-            node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
+            node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
         | "nTSecurityDescriptor" ->
             let descriptor = ADData.readSecurityDescriptor value
-            node ([MC (Color.Blue, $"{key}: ")] |> Many)
+            node ([MC (Color.Blue, $"{key}:")] |> Many)
                 [node
                     ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}");NL
                         MC (Color.White, $"group: {matchKnownSids descriptor.group}");NL
@@ -101,14 +102,14 @@ module PrettyPrinter =
         | "userCertificate" ->
             let issue, sub, pubkey = ADData.readX509Cert value
             node
-                ([MC (Color.Blue, $"{key}: ")] |> Many)
+                ([MC (Color.Blue, $"{key}:")] |> Many)
                 [node
                      ( [ MC (Color.White, $"Issuer: {issue}"); NL
                          MC (Color.White, $"Subject: {sub}"); NL
                          MC (Color.White, $"PublicKey: {pubkey}") ] |> Many)
                          [] ]
         | _ ->
-            node ([MC (Color.Grey, $"{key}: "); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
+            node ([MC (Color.Grey, $"{key}:"); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
     
     let handleStrings key (value: string list) =
@@ -128,10 +129,10 @@ module PrettyPrinter =
     let private printFormatter key (datum: ADDataTypes) =
         match datum with
         | ADBool x ->
-             node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
+             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x}")] |> Many) []
         | ADString x ->
              if x.StartsWith "***HIT COLLECTION " then node ([MC (Color.Red, x)] |> Many ) [] 
-             else node ([MC (Color.Blue, $"{key}: "); MC (Color.White, $"{x}")] |> Many) []
+             else node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x}")] |> Many) []
         | ADInt x ->
             handleInts key x
         | ADInt64 x ->

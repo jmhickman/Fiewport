@@ -10,14 +10,14 @@ open System.Security.Principal
 [<AutoOpen>]
 module ADData =
      
-    let private getAccessFlags accessMask =
+    let internal getAccessFlags accessMask =
         activeDirectoryRightsList
         |> List.filter (fun enum -> (accessMask &&& int enum) = int enum)
         |> List.map (fun enum -> enum.ToString())
         |> String.concat ", "
 
 
-    let private matchKnownSids sid =        
+    let internal matchKnownSids sid =        
         if wellKnownSids.ContainsKey sid then wellKnownSids[sid]
         else if networkSids.ContainsKey (sid.Split '-' |> Array.last) then networkSids[sid.Split '-' |> Array.last]
         else sid

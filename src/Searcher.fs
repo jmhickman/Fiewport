@@ -38,7 +38,7 @@ module Searcher =
     
     ///
     /// Composed pipeline of 'doing the search.'
-    let doSearch = configureDomainConnection >> configureSearcher >> findAll
+    let private doSearch = configureDomainConnection >> configureSearcher >> findAll
     
     ///
     /// <summary>

@@ -9,30 +9,20 @@ open LDAPConstants
 
 module DomainSearcher = 
     
+
     ///
-    ///<summary>
-    ///<para>
     /// Creates a connection to the specified LDAP endpoint at the specified path.
     /// Generally, this should be the FDQN:
-    /// <code>LDAP://somedomain.tld</code>
+    /// LDAP://somedomain.tld</code>
     /// or
-    /// <code>LDAP://somdomain.tld/CN=Some,CN=Container,DC=somedomain,DC=tld</code>
-    /// </para>
-    /// <para>
-    /// The latter form simultaneously allows non-domain-joined computers to query while allowing the connection
-    /// to live further down the object hierarchy. If the machine you're using isn't domain-joined, a connection
-    /// string like
-    /// <code>LDAP://CN=Some,CN=Container,DC=somedomain,DC=tld</code>
-    /// will not work.
-    /// </para>
-    /// </summary>
+    /// LDAP://somdomain.tld/CN=Some,CN=Container,DC=somedomain,DC=tld</code>
     /// 
     let internal getDomainConnection lDAPEndpoint username password = 
         new DirectoryEntry(lDAPEndpoint, username, password)
 
 
     /// 
-    /// <summary>Creates a DirectorySearcher using an existing connection to an LDAP endpoint.</summary>
+    /// Creates a DirectorySearcher using an existing connection to an LDAP endpoint.
     let internal getDomainSearcher config domain =
         new DirectorySearcher(domain, config.filter, config.properties, config.scope)
         |> fun ds ->
@@ -42,10 +32,7 @@ module DomainSearcher =
 
 
     ///
-    /// <summary>
-    /// Helper to convert a TLD in the connection style into the LDAP style
-    /// </summary>
-    /// 
+    /// Helper to convert a TLD in the connection style into the LDAP style 
     let internal deriveDistinguishedString (domainTld: string) =
         domainTld[7..].Split('.')
         |> Array.map (fun ss -> $"""DC={ss},""")
@@ -53,10 +40,7 @@ module DomainSearcher =
 
 
     ///
-    /// <summary>
-    /// This function unboxes values from a SearchResult and sticks them in an ADDataType.
-    /// </summary>
-    /// 
+    /// This function unboxes values from a SearchResult and sticks them in an ADDataType. 
     let private unboxLDAPValue attrName (searchResult: SearchResult) =
         let items = searchResult.Properties.Item(attrName)
         let count = items.Count
@@ -113,10 +97,8 @@ module DomainSearcher =
     
     
     ///
-    /// <summary>
     /// Processes SearchResults into LDAPSearchResults, placing in a Map only the attributes that appeared
     /// in the given SearchResult.
-    /// </summary>
     /// 
     let private LDAPCoercer searchType searchConfig (searchResult: SearchResult) =
         ADSIAttributes

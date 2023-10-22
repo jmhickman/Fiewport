@@ -68,12 +68,10 @@ module Mold =
         
         
         ///
-        /// <summary>
-        /// Operates on a single <c>LDAPSearchResult</c> to yield the corresponding value to the provided <c>key</c>.
+        /// Operates on a single LDAPSearchResult to yield the corresponding value to the provided key.
         /// Returns a string representing the value. Byte arrays aren't interpreted; if you know what the array
-        /// represents, use the corresponding <c>ADData</c> method to unwrap it properly. This returns a string of hex
+        /// represents, use the corresponding ADData method to unwrap it properly. This returns a string of hex
         /// bytes. Leaving this internal for now.
-        /// </summary>
         /// 
         static member internal getValue key (res: LDAPSearchResult) =
             res |> valueToString key

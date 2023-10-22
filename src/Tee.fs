@@ -22,7 +22,7 @@ module Tee =
             /// |> ignore</code>
             /// </summary>
             /// 
-            static member filter (filter: Filter) (action: FilterAction) (results: LDAPSearchResult list) =
+            static member public filter (filter: Filter) (action: FilterAction) (results: LDAPSearchResult list) =
                 results |> filter |> List.iter action
                 results
 
@@ -35,6 +35,6 @@ module Tee =
             /// function.</para>
             /// </summary>
             /// 
-            static member mold (mold: Mold<'T>) (action: MoldAction<'T>) results =
+            static member public mold (mold: Mold<'T>) (action: MoldAction<'T>) results =
                 results |> mold |> List.iter action
                 results

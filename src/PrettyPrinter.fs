@@ -9,12 +9,7 @@ open SpectreCoff
 
 [<AutoOpen>]
 module PrettyPrinter =
-    
-    let private panelFormat =
-        { defaultPanelLayout with
-            Sizing = SizingBehaviour.Expand
-            BorderColor = Some Color.White
-            Padding = Padding.AllEqual 0 }
+
 
     ///
     /// MS uses int64s to store these 'tick' values, instead of using unix timestamps like everyone else.
@@ -36,27 +31,21 @@ module PrettyPrinter =
 
 
     ///
-    /// Some int64 values encode data, usually a timestamp of some sort. This function handles those cases, and passes
-    /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
-    /// LDAP attributes to find all the ticks and weird values. I'll add handlers as cases come up.
-    /// 
+    /// Special treatment for int64 values that encode represent ticks.
     let private handleInt64s key (value: int64) =
         match key with
         | "accountExpires" | "badPasswordTime" | "creationTime"
         | "lastLogoff" | "lastLogon" | "pwdLastSet"
         | "lastLogonTimestamp" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ returnTicksAfterEpoch value}")] |> Many) []
-        | "forceLogoff" | "lockoutDuration" | "lockOutObservationWindow" | "maxPwdAge"
-        | "minPwdAge"  ->
+        | "forceLogoff" | "lockoutDuration" | "lockOutObservationWindow"
+        | "maxPwdAge" | "minPwdAge"  ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ returnTimespan value} hrs")] |> Many) []
         | _ -> node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
     
     
     ///
-    /// Some int values encode data, usually a enum/bitfield some sort. This function handles those cases, and passes
-    /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
-    /// LDAP attributes to find all the everything. I'll add handlers as cases come up.
-    /// 
+    /// Special treatment for int values that encode enums, usually. 
     let private handleInts key (value: int) =        
         match key with
         | "adminCount" ->
@@ -84,9 +73,7 @@ module PrettyPrinter =
         
     
     ///
-    /// Bytes values appear in the LDAP results as pure encodings of various pieces of data. This function handles these
-    /// cases.
-    /// 
+    /// Special treatment for byte values that need it for additional display clarity.
     let private handleBytes key (value: byte array) =
         match key with
         | "objectSid" ->
@@ -112,6 +99,8 @@ module PrettyPrinter =
             node ([MC (Color.Grey, $"{key}:"); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
     
+    ///
+    /// Special treatment for a couple of known strings.
     let private handleStrings key (value: string list) =
         match key with
         | "wellKnownObjects" |"otherWellKnownObjects" ->

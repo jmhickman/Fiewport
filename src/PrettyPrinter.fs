@@ -20,7 +20,7 @@ module PrettyPrinter =
     /// MS uses int64s to store these 'tick' values, instead of using unix timestamps like everyone else.
     /// Handles the max-value case and otherwise returns a date stamp.
     /// 
-    let returnTicksAfterEpoch ticks =
+    let private returnTicksAfterEpoch ticks =
         match ticks with
         | Int64.MaxValue -> "no expiry"
         | _ -> 
@@ -29,7 +29,7 @@ module PrettyPrinter =
                 epoch.AddTicks ticks
                 |> fun date -> date.ToShortDateString ()
             
-    let returnTimespan ticks =        
+    let private returnTimespan ticks =        
         match ticks with
         | Int64.MinValue -> "No limit"
         | _ -> TimeSpan.FromTicks (abs ticks) |> fun time -> time.TotalHours.ToString ()
@@ -40,7 +40,7 @@ module PrettyPrinter =
     /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
     /// LDAP attributes to find all the ticks and weird values. I'll add handlers as cases come up.
     /// 
-    let handleInt64s key (value: int64) =
+    let private handleInt64s key (value: int64) =
         match key with
         | "accountExpires" | "badPasswordTime" | "creationTime"
         | "lastLogoff" | "lastLogon" | "pwdLastSet"
@@ -57,7 +57,7 @@ module PrettyPrinter =
     /// through the ones that don't. This won't handle every case, because I'm not manually trawling through 1500
     /// LDAP attributes to find all the everything. I'll add handlers as cases come up.
     /// 
-    let handleInts key (value: int) =        
+    let private handleInts key (value: int) =        
         match key with
         | "adminCount" ->
             node ([MC (Color.Red, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
@@ -87,7 +87,7 @@ module PrettyPrinter =
     /// Bytes values appear in the LDAP results as pure encodings of various pieces of data. This function handles these
     /// cases.
     /// 
-    let handleBytes key (value: byte array) =
+    let private handleBytes key (value: byte array) =
         match key with
         | "objectSid" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
@@ -112,7 +112,7 @@ module PrettyPrinter =
             node ([MC (Color.Grey, $"{key}:"); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
     
-    let handleStrings key (value: string list) =
+    let private handleStrings key (value: string list) =
         match key with
         | "wellKnownObjects" |"otherWellKnownObjects" ->
             node ([MC (Color.Blue, $"{key}:")] |> Many)
@@ -212,4 +212,13 @@ module PrettyPrinter =
             // I have to sleep here because otherwise the main thread risks exiting before the printer prints.
             // I tried forcing synchronous execution, but that didn't seem to do anything at all about the issue.
             System.Threading.Thread.Sleep 40) 
-        
+    
+    ///
+    /// <summary>
+    /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
+    /// use this. This function is used with <c>Tee</c> to provide console output.
+    /// </summary>
+    /// 
+    let public prettyAction (res: LDAPSearchResult) =
+        pPrinter.Post res
+        System.Threading.Thread.Sleep 40

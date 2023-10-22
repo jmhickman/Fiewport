@@ -77,12 +77,17 @@ module ADData =
 
 
          static member internal readSecurityDescriptor bytes =
-            let getSIDAndFlags (genAce: GenericAce) =
-                genAce :?> CommonAce // yolo, works on my AD, etc
-                |> fun comAce -> $"{matchKnownSids comAce.SecurityIdentifier.Value}::{getAccessFlags comAce.AccessMask}"
-            
             let descriptor = CommonSecurityDescriptor(false, false, bytes, 0)
-            let humanDACLs = [for dacl in descriptor.DiscretionaryAcl do yield dacl] |> List.map getSIDAndFlags
+            let humanDACLs = 
+                let dacls = [for dacl in descriptor.DiscretionaryAcl do yield dacl]
+                dacls
+                |> List.map (fun dacl ->
+                    match dacl with
+                    | :? CommonAce as common ->
+                        let flags = getAccessFlags common.AccessMask
+                        $"{matchKnownSids common.SecurityIdentifier.Value}::{flags}"
+                    | _ -> "")
+                |> List.filter (fun p -> p <> "")
                 
             { owner = descriptor.Owner.Value
               group = descriptor.Group.Value

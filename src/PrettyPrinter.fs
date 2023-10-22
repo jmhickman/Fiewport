@@ -84,7 +84,7 @@ module PrettyPrinter =
                 [node
                     ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}");NL
                         MC (Color.White, $"group: {matchKnownSids descriptor.group}");NL
-                        MC (Color.White, "DACLs") ] |> Many)
+                        MC (Color.White, "DACLs (CommonACE)") ] |> Many)
                         [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) [] ] ]
         | "userCertificate" ->
             let issue, sub, pubkey = ADData.readX509Cert value
@@ -195,7 +195,7 @@ module PrettyPrinter =
     /// </code>
     /// </summary>
     /// 
-    let public prettyPrint (res: LDAPSearchResult list) =
+    let public print (res: LDAPSearchResult list) =
         res |> List.iter (fun r ->
             pPrinter.Post r
             // I have to sleep here because otherwise the main thread risks exiting before the printer prints.
@@ -208,6 +208,6 @@ module PrettyPrinter =
     /// use this. This function is used with <c>Tee</c> to provide console output.
     /// </summary>
     /// 
-    let public prettyAction (res: LDAPSearchResult) =
+    let public action (res: LDAPSearchResult) =
         pPrinter.Post res
         System.Threading.Thread.Sleep 40

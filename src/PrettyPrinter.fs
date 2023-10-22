@@ -115,14 +115,14 @@ module PrettyPrinter =
     let handleStrings key (value: string list) =
         match key with
         | "wellKnownObjects" |"otherWellKnownObjects" ->
-            node ([MC (Color.Blue, $"{key}(strings):")] |> Many)
+            node ([MC (Color.Blue, $"{key}:")] |> Many)
                 [ for item in value do
                       let splits = item.Split ':'
                       let guid = Guid.Parse(splits[2])
                       let dn = splits[3]
                       yield node ([MC (Color.White, $"{guid} -> {dn}")] |> Many) [] ]
         | _ ->
-            node ([MC (Color.Blue, $"{key}(strings):")] |> Many) [ for item in value do yield node ([MC (Color.White, $"{item}")] |> Many) [] ]
+            node ([MC (Color.Blue, $"{key}:")] |> Many) [ for item in value do yield node ([MC (Color.White, $"{item}")] |> Many) [] ]
     
     ///
     /// Does the heavy lifting of creating the formatting for all of the datatypes that Fiewport encounters.

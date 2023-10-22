@@ -22,6 +22,7 @@ module Filter =
         /// LDAPData Map. Answers the question "does any key match this value?" Note that <c>value</c> is of type
         /// ADDataTypes. Cast your term into the appropriate type, i.e. <code>"term" |> ADString</code> or <code>1 |> ADInt</code>
         /// </summary>
+        /// 
         static member public valuePresent value (res: LDAPSearchResult list) =
             res
             |> List.filter(fun res' ->
@@ -41,6 +42,7 @@ module Filter =
         /// The <c>value</c>
         /// comparison is strict, as these comparisons operate on the <c>ADDataType</c>s so there's no regex or <c>
         /// Contains</c> testing.
-        /// </remarks>        
+        /// </remarks>
+        ///  
         static member public attributeIsValue attr value (res: LDAPSearchResult list) =
             List.filter (fun p -> (p.lDAPData.ContainsKey attr && p.lDAPData[attr] = value)) res

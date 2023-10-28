@@ -102,12 +102,12 @@ module PrettyPrinter =
     
     
     ///
-    /// Special treatment for a couple of known strings.
+    /// Special treatment for string values that need it for additional display clarity.
     let private handleStrings key (value: string list) =
         match key with
         | "wellKnownObjects" |"otherWellKnownObjects" ->
             node ([MC (Color.Blue, $"{key}:")] |> Many)
-                [ for item in value do
+                [ for item in value do //each of these just needs some values trimmed off and some type coercion 
                       let splits = item.Split ':'
                       let guid = Guid.Parse(splits[2])
                       let dn = splits[3]
@@ -143,10 +143,10 @@ module PrettyPrinter =
     /// Simple MailboxProcessor for handling printing. All console output from the library flows through here, so there
     /// is no locking. Users might stomp on this when doing their own printing in a script, but w/e.
     /// 
-    let private printer (mbox: MailboxProcessor<LDAPSearchResult>) =
+    let private printer (mbox: MailboxProcessor<LDAPSearchResult * AsyncReplyChannel<unit>>) =
         
         let rec ringRing () = async {
-            let! msg = mbox.Receive ()
+            let! msg, channel = mbox.Receive ()
             let keys = [for key in msg.lDAPData.Keys do yield key]
             let _data = keys |> List.map (fun key -> key, msg.lDAPData[key])
                         
@@ -162,6 +162,7 @@ module PrettyPrinter =
                   MC (Color.Red, err ) ]
                 |> Many
                 |> toConsole
+            channel.Reply ()
             do! ringRing ()
         }
         
@@ -170,38 +171,22 @@ module PrettyPrinter =
     
     ///
     /// Starts the MailboxProcessor 
-    let private pPrinter =
-        // Stupid bodge to deal with nonsense. Spectre will not emit any markup text 
-        // from inside the MailboxProcessor without first printing it _outside_ the mailbox.
-        // It doesn't make any sense. So I print a blank line. 🙄🙄
-        BL |> toConsole       
-        MailboxProcessor.Start printer
-        
+    let private pPrinter = MailboxProcessor.Start printer
     
     ///
     /// <summary>
     /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
     /// use this. Just stick it on the end of whatever pipeline you have.
     /// <code>
-    /// let config = { properties = [||]
-    ///                filter = "objectCategory=*"
-    ///                scope = SearchScope.Subtree
-    ///                ldapDomain = "LDAP://somedomain.local"
-    ///                username = "username"
-    ///                password = "password" }
-    /// [config]
-    /// |> Searcher.getDomainObjects
-    /// |> Filter.attributePresent "msDS-SupportedEncryptionTypes"
-    /// |> PrettyPrinter.prettyPrint
+    /// [someConfig]
+    /// |> Searcher.getComputers
+    /// |> PrettyPrinter.print
     /// </code>
     /// </summary>
     /// 
     let public print (res: LDAPSearchResult list) =
         res |> List.iter (fun r ->
-            pPrinter.Post r
-            // I have to sleep here because otherwise the main thread risks exiting before the printer prints.
-            // I tried forcing synchronous execution, but that didn't seem to do anything at all about the issue.
-            System.Threading.Thread.Sleep 40) 
+            pPrinter.PostAndReply (fun x -> r, x) )
     
     ///
     /// <summary>
@@ -210,5 +195,4 @@ module PrettyPrinter =
     /// </summary>
     /// 
     let public action (res: LDAPSearchResult) =
-        pPrinter.Post res
-        System.Threading.Thread.Sleep 40
+        pPrinter.PostAndReply (fun reply -> res, reply)

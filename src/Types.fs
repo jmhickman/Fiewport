@@ -119,11 +119,6 @@ module Types =
           parent: string option
           pdcRoleOwner: string
           ridRoleOwner: string }
-        
-    ///
-    /// Convenience type. Ugly tuples are ugly.
-    type IntermediateSearchResultsCollection =
-        Result<SearchResultCollection * DirectorySearcherConfig, LDAPSearcherError * DirectorySearcherConfig>
             
     
     ///

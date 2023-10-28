@@ -20,8 +20,6 @@ module DomainSearcher =
     let internal getDomainConnection lDAPEndpoint username password = 
         new DirectoryEntry(lDAPEndpoint, username, password)
 
-
-
     
     /// 
     /// Creates a DirectorySearcher using an existing connection to an LDAP endpoint.
@@ -116,12 +114,12 @@ module DomainSearcher =
     
     ///
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
-    let internal createLDAPSearchResults searchType (results: IntermediateSearchResultsCollection) = 
+    let internal createLDAPSearchResults searchType searchConfig (results: Result<SearchResultCollection, LDAPSearcherError>) = 
         match results with
-            | Ok (results', searchConfig) ->
+            | Ok results' ->
                 [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
-            | Error (e, searchConfig) ->                
+            | Error e ->                
                 [{ searchType = searchType
-                   searchConfig = searchConfig
+                   searchConfig = {searchConfig with password = "" }
                    lDAPSearcherError = decodeLDAPSearcherError e |> Some
                    lDAPData = Map.empty<string,ADDataTypes> }]

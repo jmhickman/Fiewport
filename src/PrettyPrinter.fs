@@ -190,7 +190,7 @@ module PrettyPrinter =
         /// 
         static member public print (res: LDAPSearchResult list) =
             res |> List.iter (fun r ->
-                pPrinter.PostAndReply (fun x -> r, x) )
+                pPrinter.PostAndReply (fun reply -> r, reply) )
         
         ///
         /// <summary>

@@ -189,8 +189,9 @@ module PrettyPrinter =
         /// </summary>
         /// 
         static member public print (res: LDAPSearchResult list) =
-            res |> List.iter (fun r ->
-                pPrinter.PostAndReply (fun reply -> r, reply) )
+            match res.Length with
+            | x when x > 0 -> res |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
+            | _ -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
         
         ///
         /// <summary>

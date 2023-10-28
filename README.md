@@ -12,13 +12,13 @@ Eventually. It's not done yet. But here's what we have so far.
 
 Fiewport is primarily intended to be used from inside F# script files (.fsx). The reason comes from Fiewport's roots. 
 
-Most AD tooling for security professionals comes from Powershell, not least of which is the titular PowerView. Part of the appeal of PowerView and tools like it was that, in leveraging the shell, commands could be piped into one another to sort through a bulk of data.
+PowerShell is the source of most AD tooling for security professionals, not least of which is the titular PowerView. Part of the appeal of PowerView is that by leveraging the shell, commands can be piped into one another to sort and manipulate results.
 
 I wanted to directly support that flexibility. And nothing pipes better than F#. (Fight me.)
 
 Fiewport can be used as a normal library in a compiled application of course. I might even provide such a front end at some point. But the freedom of `fsi` allows a tester to quickly iterate on what they find important.
 
-Fiewport ships with a script that's intended to be `#load`-ed into your actual script. This both to keep boilerplate to a minimum and to handle some imports of our own.
+Fiewport ships with a script that's intended to be `#load`-ed into your actual script.
 
 A short demonstration of Fiewport might look like this:
 
@@ -42,11 +42,38 @@ let config =
 ```
 As it suggests, this will create a connection to an active directory located at `LDAP://astralexpress.local` with the provided credentials. Fiewport does not assume your computer is connected to the AD you want to examine. Thus, this connection information is necessary. It also allows you to control what user(s) you chose to enumerate with.
 
-The config is also where you may influence the LDAP filter used during the canned searches. Please read the comments on each `Seacher` method, because filters are sometimes `OR`-ed, sometimes `AND`ed, and sometimes ignored completely. 
+The config is also where you may influence the LDAP filter used during the canned searches. Please read the comments on each `Seacher` method, because filters are sometimes `OR`-ed, sometimes `AND`ed, and sometimes ignored completely.
 
-Additionally, putting attributes into the `properties` array allows you to trim down the attributes that come back from a search. If you know you only care about, say, "adminCount" and the "userAccountControl" attributes, you can place them in the array and dramatically reduce the amount of console output. You can also create arrays of attributes ahead of time and keep them in your scripts. 
+> ℹ️ If you want complete control over your search, see `Searcher.getDomainObjects`
 
-Since the `config` isn't global, you can also store multiple configs with different LDAP addresses, users, etc. Put them all in a list, and feed them in!
+Additionally, putting attributes into the `properties` array allows you to trim down the attributes that come back from a search. If you know you only care about, say, "adminCount" and the "userAccountControl" attributes, you can place them in the array and dramatically reduce the amount of console output. You can also create arrays of attributes ahead of time and keep them in your scripts.
+
+For example, if you know you only cared about "name" "memberOf" and "primaryGroupID" for the `getUsers` search:
+
+```fsharp
+#load "ImportFiewport.fsx"
+
+open Fiewport // mandatory
+open System.DirectoryServices // mandatory
+
+let config = 
+    { properties = [|"name"; "memberOf"; "primaryGroupID"|]
+      filter = ""
+      scope = SearchScope.Subtree
+      ldapDomain = "LDAP://astralexpress.local"
+      username = "trailblazer"
+      password = "himekoscoffeeisthebest" }
+
+[config]
+|> Searcher.getUsers
+|> PrettyPrinter.prettyPrint
+```
+
+![only these properties](only-properties.png)
+
+> ⚠️ Be careful when restricting LDAP searchers to certain properties! If you combine restricted properties with `Filter`s, and you try to filter for a property that isn't present, you'll just get empty results!
+
+Since connection `config`s aren't global, you can store multiple configs with different LDAP addresses, users, etc. Put them all in a list, and feed them in!
 
 This `Searcher` performs a built-in search to get users from the AD. The result of that search is an F# `List`. That list is then provided to the printer for displaying on the terminal.
 
@@ -54,7 +81,7 @@ A typical individual user result from the search might look like this:
 
 ![typical result](user-result.png)
 
-Each result is characterized by some information at the top that is always present. The `objectCategory` and `objectClass` LDAP attributes are represented, as well as the `objectGUID`. Any and all known attributes are included in the results.
+The top line indicates the source of the search. If you specified something in the filter configuration, it will be represented here as well.
 
 In addition to the `Searcher` and the `PrettyPrinter`, Fiewport exposes `Filter`s, `Mold`s and `Tee`s
 

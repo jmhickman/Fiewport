@@ -153,7 +153,7 @@ module PrettyPrinter =
             match msg.lDAPSearcherError with
             | None ->
                 [ MCD (Color.Blue, [Decoration.Underline], $"===Search: {msg.searchType}======"); NL
-                  MC (Color.Wheat1, $"**Search config: {msg.searchConfig.filter}"); NL
+                  if msg.searchConfig.filter <> "" then MC (Color.Wheat1, $"[*] Your search filter: {msg.searchConfig.filter}"); NL
                   tree (V "attributes") (_data |> List.map (fun (key, datum) -> printFormatter key datum)) ]
                 |> Many
                 |> toConsole
@@ -173,26 +173,30 @@ module PrettyPrinter =
     /// Starts the MailboxProcessor 
     let private pPrinter = MailboxProcessor.Start printer
     
-    ///
-    /// <summary>
-    /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
-    /// use this. Just stick it on the end of whatever pipeline you have.
-    /// <code>
-    /// [someConfig]
-    /// |> Searcher.getComputers
-    /// |> PrettyPrinter.print
-    /// </code>
-    /// </summary>
-    /// 
-    let public print (res: LDAPSearchResult list) =
-        res |> List.iter (fun r ->
-            pPrinter.PostAndReply (fun x -> r, x) )
-    
-    ///
-    /// <summary>
-    /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
-    /// use this. This function is used with <c>Tee</c> to provide console output.
-    /// </summary>
-    /// 
-    let public action (res: LDAPSearchResult) =
-        pPrinter.PostAndReply (fun reply -> res, reply)
+
+    type PrettyPrinter = class end
+
+        with
+        ///
+        /// <summary>
+        /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
+        /// use this. Just stick it on the end of whatever pipeline you have.
+        /// <code>
+        /// [someConfig]
+        /// |> Searcher.getComputers
+        /// |> PrettyPrinter.print
+        /// </code>
+        /// </summary>
+        /// 
+        static member public print (res: LDAPSearchResult list) =
+            res |> List.iter (fun r ->
+                pPrinter.PostAndReply (fun x -> r, x) )
+        
+        ///
+        /// <summary>
+        /// The PrettyPrinter does what it says on the tin. If you want structured, easy to digest output from the library,
+        /// use this. This function is used with <c>Tee</c> to provide console output.
+        /// </summary>
+        /// 
+        static member public action (res: LDAPSearchResult) =
+            pPrinter.PostAndReply (fun reply -> res, reply)

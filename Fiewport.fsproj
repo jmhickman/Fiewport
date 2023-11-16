@@ -25,7 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.47.39" />
+      <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.47.54" />
       <PackageReference Include="Spectre.Console" Version="0.47.0" />
       <PackageReference Include="System.DirectoryServices" Version="7.0.1" />
       <PackageReference Include="System.DirectoryServices.AccountManagement" Version="7.0.1" />

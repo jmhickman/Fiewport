@@ -98,7 +98,8 @@ module PrettyPrinter =
         | "objectGUID" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value |> Guid}") ] |> Many) []
         | _ ->
-            node ([MC (Color.Grey, $"{key}:"); MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
+            node ([MC (Color.Grey, $"{key}:")
+                   MC (Color.White, $"{value |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}") ] |> Many) []
     
     
     ///
@@ -137,7 +138,8 @@ module PrettyPrinter =
         | ADBytesList x ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield handleBytes key item]
         | ADDateTimeList x ->
-            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]  
+            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]
+
     
     ///
     /// Simple MailboxProcessor for handling printing. All console output from the library flows through here, so there
@@ -147,14 +149,13 @@ module PrettyPrinter =
         
         let rec ringRing () = async {
             let! msg, channel = mbox.Receive ()
-            let keys = [for key in msg.lDAPData.Keys do yield key]
-            let _data = keys |> List.map (fun key -> key, msg.lDAPData[key])
-                        
+            let data = [for key in msg.lDAPData.Keys do yield key, msg.lDAPData[key]]
+            
             match msg.lDAPSearcherError with
             | None ->
-                [ MCD (Color.Blue, [Decoration.Underline], $"===Search: {msg.searchType}======"); NL
+                [ MCD (Color.Wheat1, [Decoration.Underline], $"===Search: {msg.searchType}======"); NL
                   if msg.searchConfig.filter <> "" then MC (Color.Wheat1, $"[*] Your search filter: {msg.searchConfig.filter}"); NL
-                  tree (V "attributes") (_data |> List.map (fun (key, datum) -> printFormatter key datum)) ]
+                  tree (V "attributes") (data |> List.map (fun (key, datum) -> printFormatter key datum)) |> toOutputPayload]
                 |> Many
                 |> toConsole
             | Some err ->

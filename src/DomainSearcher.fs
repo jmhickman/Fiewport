@@ -93,8 +93,7 @@ module DomainSearcher =
     /// in the given SearchResult.
     /// 
     let private LDAPCoercer searchType searchConfig (searchResult: SearchResult) =
-        ADSIAttributes
-        |> List.filter searchResult.Properties.Contains 
+        [for name in searchResult.Properties.PropertyNames do yield name.ToString ()]
         |> List.fold(fun mapData attr ->
             // create an empty Map to use as accumulator for the fold, stuffing it with unboxed values 
             mapData |> Map.add attr (unboxLDAPValue attr searchResult)) Map.empty<string, ADDataTypes>

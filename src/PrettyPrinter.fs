@@ -34,12 +34,12 @@ module PrettyPrinter =
     /// Special treatment for int64 values that encode represent ticks.
     let private handleInt64s key (value: int64) =
         match key with
-        | "accountExpires" | "badPasswordTime" | "creationTime"
-        | "lastLogoff" | "lastLogon" | "pwdLastSet"
-        | "lastLogonTimestamp" ->
+        | "accountexpires" | "badpasswordtime" | "creationtime"
+        | "lastlogoff" | "lastlogon" | "pwdlastset"
+        | "lastlogontimestamp" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ returnTicksAfterEpoch value}")] |> Many) []
-        | "forceLogoff" | "lockoutDuration" | "lockOutObservationWindow"
-        | "maxPwdAge" | "minPwdAge"  ->
+        | "forcelogoff" | "lockoutduration" | "lockoutobservationwindow"
+        | "maxpwdage" | "minpwdage"  ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ returnTimespan value} hrs")] |> Many) []
         | _ -> node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
     
@@ -48,26 +48,26 @@ module PrettyPrinter =
     /// Special treatment for int values that encode enums, usually. 
     let private handleInts key (value: int) =        
         match key with
-        | "adminCount" ->
+        | "admincount" ->
             node ([MC (Color.Red, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
-        | "groupType" ->
+        | "grouptype" ->
             groupTypeList // in LDAPConstants
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
             |> fun enum -> node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
-        | "systemFlags" ->
+        | "systemflags" ->
             systemFlagsList
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
             |> fun enum -> node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
-        | "userAccountControl" ->
+        | "useraccountcontrol" ->
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in (ADData.readUserAccountControl value) do yield node (MC (Color.White, $"{item}")) []]
-        | "sAMAccountType" ->
+        | "samaccounttype" ->
             sAMAccountTypesList
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
             |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
-        | "msDS-SupportedEncryptionTypes" ->
+        | "msds-supportedencryptiontypes" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
         | _ -> node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
         
@@ -76,17 +76,17 @@ module PrettyPrinter =
     /// Special treatment for byte values that need it for additional display clarity.
     let private handleBytes key (value: byte array) =
         match key with
-        | "objectSid" ->
+        | "objectsid" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
-        | "nTSecurityDescriptor" ->
+        | "ntsecuritydescriptor" ->
             let descriptor = ADData.readSecurityDescriptor value
-            node ([MC (Color.Blue, $"{key}:")] |> Many)
+            node ([MC (Color.Blue, $"{key}")] |> Many)
                 [ node
-                    ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}");NL
-                        MC (Color.White, $"group: {matchKnownSids descriptor.group}");NL
+                    ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}, group: {matchKnownSids descriptor.group}")
+                        NL
                         MC (Color.White, "DACLs (CommonACE)") ] |> Many)
                         [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) []] ]
-        | "userCertificate" ->
+        | "usercertificate" ->
             let issue, sub, pubkey = ADData.readX509Cert value
             node
                 ([MC (Color.Blue, $"{key}:")] |> Many)
@@ -95,7 +95,7 @@ module PrettyPrinter =
                          MC (Color.White, $"Subject: {sub}"); NL
                          MC (Color.White, $"PublicKey: {pubkey}") ] |> Many)
                          [] ]
-        | "objectGUID" ->
+        | "objectguid" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value |> Guid}") ] |> Many) []
         | _ ->
             node ([MC (Color.Grey, $"{key}:")
@@ -106,7 +106,7 @@ module PrettyPrinter =
     /// Special treatment for string values that need it for additional display clarity.
     let private handleStrings key (value: string list) =
         match key with
-        | "wellKnownObjects" |"otherWellKnownObjects" ->
+        | "wellknownobjects" |"otherwellknownobjects" ->
             node ([MC (Color.Blue, $"{key}:")] |> Many)
                 [ for item in value do //each of these just needs some values trimmed off and some type coercion 
                       let splits = item.Split ':'
@@ -190,8 +190,11 @@ module PrettyPrinter =
         /// </summary>
         /// 
         static member public print (res: LDAPSearchResult list) =
+            
             match res.Length with
-            | x when x > 0 -> res |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
+            | x when x > 0 ->
+                MC (Color.Green1, $"[*] Found {res.Length} results") |> toConsole
+                res |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
             | _ -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
         
         ///

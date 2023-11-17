@@ -78,7 +78,7 @@ module Types =
     
     ///
     /// <summary>
-    /// Represents the result of an LDAP search. AD has 1507 unique attributes, and that's
+    /// Represents the result of an LDAP search. AD has thousands of potential attributes, and that's
     /// a few too many to individually add to a record. Most are stored in the <c>Map</c> but a few are
     /// available from the top of the record.
     /// </summary>

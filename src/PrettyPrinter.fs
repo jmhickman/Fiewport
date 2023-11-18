@@ -1,9 +1,8 @@
 ﻿namespace Fiewport
 
-
 open System
-open Fiewport.LDAPConstants
-open Fiewport.ADData
+open LDAPConstants
+open ADUtils
 open Spectre.Console
 open SpectreCoff
 

@@ -2,7 +2,7 @@
 
 open System.DirectoryServices
 open Types
-open DomainSearcher
+open LDAPUtils
 
 [<AutoOpen>]
 module Searcher =

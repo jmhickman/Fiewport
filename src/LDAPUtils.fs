@@ -4,11 +4,8 @@ open System
 open System.DirectoryServices
 
 open Types
-open ADData
-open LDAPConstants
 
-module DomainSearcher = 
-    
+module LDAPUtils =     
 
     ///
     /// Creates a connection to the specified LDAP endpoint at the specified path.

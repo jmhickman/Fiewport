@@ -116,7 +116,7 @@ module PrettyPrinter =
             node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in value do yield node ([MC (Color.White, $"{item}")] |> Many) []]
     
     ///
-    /// Does the heavy lifting of creating the formatting for all of the datatypes that Fiewport encounters.
+    /// Does the heavy lifting of creating the formatting for all the datatypes that Fiewport encounters.
     let private printFormatter key (datum: ADDataTypes) =
         match datum with
         | ADBool x ->
@@ -189,12 +189,12 @@ module PrettyPrinter =
         /// </summary>
         /// 
         static member public print (res: LDAPSearchResult list) =
-            
-            match res.Length with
-            | x when x > 0 ->
+
+            match res with
+            | [] -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
+            | _ ->
                 MC (Color.Green1, $"[*] Found {res.Length} results") |> toConsole
                 res |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
-            | _ -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
         
         ///
         /// <summary>

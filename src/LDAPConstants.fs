@@ -240,9 +240,4 @@ module LDAPConstants =
               "525", "Protected Users"
               "526", "Key Admins"
               "527", "Enterprise Key Admins" ]
-
-
-
-
-
         

@@ -26,7 +26,7 @@ module Types =
         | ADBytesList of byte array list
     
     ///
-    /// <summary>Defines a DirectorySearcher aside from the DirectoryEntry</summary>
+    /// <summary>Defines a DirectorySearcher</summary>
     /// <param name="properties">an array indicating the attributes to retain from a search.
     /// All other attributes will be omitted, even if they are present.</param>
     /// <param name="filter">The LDAP filter string. Not case sensitive</param>
@@ -44,7 +44,8 @@ module Types =
           username: string
           password: string }
         
-        
+    ///
+    /// <summary>Defines the batteries-included searches</summary> 
     type LDAPSearchType =
         | GetUsers
         | GetComputers
@@ -70,6 +71,8 @@ module Types =
         | GetGroupsWithLocalAdminRights
     
     
+    ///
+    /// <summary>Defines a human-readable SDDL</summary>
     type HumanSDDL =
         { owner: string
           group: string
@@ -78,9 +81,8 @@ module Types =
     
     ///
     /// <summary>
-    /// Represents the result of an LDAP search. AD has thousands of potential attributes, and that's
-    /// a few too many to individually add to a record. Most are stored in the <c>Map</c> but a few are
-    /// available from the top of the record.
+    /// Represents the result of an LDAP search. An AD has an arbitrary number of attributes, and all
+    /// results are stored in the <c>Map</c>.
     /// </summary>
     ///
     type LDAPSearchResult =
@@ -122,20 +124,20 @@ module Types =
             
     
     ///
-    /// Setting up the Tee module    
+    /// <summary>Defines a Filter for the <c>Tee</c></summary>    
     type Filter = LDAPSearchResult list -> LDAPSearchResult list
     
     
     ///
-    /// Setting up the Tee module
+    /// <summary>Defines a Mold for the <c>Tee</c></summary>    
     type Mold<'T> = LDAPSearchResult list -> 'T list
     
     
     ///
-    /// Setting up the Tee module
+    /// <summary>Defines a FilterAction for the <c>Tee</c></summary>    
     type FilterAction = LDAPSearchResult -> unit
     
     
     ///
-    /// Setting up the Tee module
+    /// <summary>Defines a MoldAction for the <c>Tee</c></summary>    
     type MoldAction<'T> = 'T -> unit

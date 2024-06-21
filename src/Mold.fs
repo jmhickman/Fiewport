@@ -40,7 +40,7 @@ module Mold =
         /// Add keys that support custom logic for your use-case to the <c>lDAPData</c> map in a list of
         /// <c>LDAPSearchResult</c>s.
         /// </summary>
-        ///         
+        /// TODO: Might remove this, unsure if it has merit...
         static member public addKeys keys res =
             // Too smoothbrained to get this expressed as a fold. This is probably clearer anyway.
             let rec addKeys keys acc =
@@ -77,6 +77,6 @@ module Mold =
             res |> valueToString key
 
 
-        /// Temporary testing function, will be subsumed by the prettyprinter
-        static member internal dumpKeysAndValues (res: LDAPSearchResult) =
-            [for key in res.lDAPData.Keys do yield $"{key}::{valueToString key res}"]
+        // Temporary testing function, will be subsumed by the prettyprinter
+        // static member internal dumpKeysAndValues (res: LDAPSearchResult) =
+        //     [for key in res.lDAPData.Keys do yield $"{key}::{valueToString key res}"]

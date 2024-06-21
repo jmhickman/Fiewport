@@ -9,7 +9,7 @@ module Tee =
 
         with
 
-            ///
+            /// TODO: Expand docstring to cover filter composition
             /// <summary>
             /// <para><c>Tee.filter</c> allows a specific filter (or sequence of filters) to be run against an incoming
             /// set of <c>LDAPSearchResults</c>, applying a unit function to the output, and then returning the original
@@ -27,7 +27,7 @@ module Tee =
                 results
 
 
-            ///
+            /// 
             /// <summary>
             /// <para><c>Tee.mold</c> allows a Mold (or sequence of filters ending in a Mold) to be run against an
             /// incoming set of <c>LDAPSearchResults</c>, applying a unit function to the output, and then returning
@@ -38,3 +38,5 @@ module Tee =
             static member public mold (mold: Mold<'T>) (action: MoldAction<'T>) results =
                 results |> mold |> List.iter action
                 results
+
+            // TODO: Is it worth it to add filterAndPrint?

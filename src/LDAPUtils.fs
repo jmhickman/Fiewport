@@ -31,8 +31,8 @@ module LDAPUtils =
     /// Helper to convert a TLD in the connection style into the LDAP style 
     let internal deriveDistinguishedString (domainTld: string) =
         domainTld[7..].Split('.')
-        |> Array.map (fun ss -> $"""DC={ss},""")
-        |> fun s -> String.Join("", s).Trim(',')
+        |> Array.map (fun s -> $"""DC={s},""")
+        |> fun xs -> String.Join("", xs).Trim(',')
 
 
     ///
@@ -73,7 +73,7 @@ module LDAPUtils =
                 |> Seq.map unbox<byte array>
                 |> List.ofSeq
                 |> ADBytesList
-            | _ -> "***HIT COLLECTION TYPE THAT DIDN'T MATCH: " + detectedType.ToString() |> ADString               
+            | _ -> ["***HIT COLLECTION TYPE THAT DIDN'T MATCH: " + detectedType.ToString()]|> ADStringList
 
     
     ///
@@ -91,9 +91,8 @@ module LDAPUtils =
     /// 
     let private LDAPCoercer searchType searchConfig (searchResult: SearchResult) =
         [for name in searchResult.Properties.PropertyNames do yield name.ToString ()]
-        |> List.fold(fun mapData attr ->
-            // create an empty Map to use as accumulator for the fold, stuffing it with unboxed values 
-            mapData |> Map.add attr (unboxLDAPValue attr searchResult)) Map.empty<string, ADDataTypes>
+        |> List.fold(fun mapData attr -> mapData |> Map.add attr (unboxLDAPValue attr searchResult))
+               Map.empty<string, ADDataTypes>
         |> setRecordAttrs searchType searchConfig
     
     
@@ -108,7 +107,7 @@ module LDAPUtils =
         | OtherError s -> "OtherError: " + s
     
     
-    ///
+    /// TODO: I kind of feel like this needs to be moved up into the Searcher
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
     let internal createLDAPSearchResults searchType searchConfig (results: Result<SearchResultCollection, LDAPSearcherError>) = 
         match results with

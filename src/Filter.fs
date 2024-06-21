@@ -6,7 +6,7 @@ module Filter =
     type Filter = class end
     
         with        
-
+        // TODO: Generally need to check that the logic of how these are used blocks processing empty lists. Otherwise add guards
         ///
         ///<summary>
         /// Filters LDAPSearchResults based upon the presence of the supplied <c>filterAttribute</c> key in the
@@ -63,8 +63,8 @@ module Filter =
         /// composability with the PrettyPrinter.
         /// </summary>
         /// <remarks>
-        /// I confess I don't understand the usefulness of this, but I'm including it anyway because I anticipate
-        /// someone will ask for it.
+        /// I confess I don't understand the usefulness of this. I'm including it anyway because I anticipate
+        /// someone will ask for it and it's in PowerView.
         /// </remarks>
         /// 
         static member public justOne (res: LDAPSearchResult list) = [List.head res]

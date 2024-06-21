@@ -77,15 +77,14 @@ module ADUtils =
 
 
          static member internal readSecurityDescriptor bytes =
-            let descriptor = CommonSecurityDescriptor(false, false, bytes, 0)
+            let descriptor = CommonSecurityDescriptor(false, false, bytes, 0) // need to check into these flags to make sure I'm not reading these incorrectly
             let humanDACLs = 
-                let dacls = [for dacl in descriptor.DiscretionaryAcl do yield dacl]
-                dacls
+                [for dacl in descriptor.DiscretionaryAcl do yield dacl]
                 |> List.map (fun dacl ->
                     match dacl with
                     | :? CommonAce as common ->
                         let flags = getAccessFlags common.AccessMask
-                        $"{matchKnownSids common.SecurityIdentifier.Value}::{flags}"
+                        $"{matchKnownSids common.SecurityIdentifier.Value}--{flags}"
                     | _ -> "")
                 |> List.filter (fun p -> p <> "")
                 
@@ -99,7 +98,7 @@ module ADUtils =
 
 
          static member internal readSID bytes =
-             SecurityIdentifier(bytes, 0) |> fun sid -> sid.Value
+             SecurityIdentifier(bytes, 0) |> _.Value
 
 
          static member internal readmsDSSupportedEncryptionTypes bits =
@@ -110,4 +109,4 @@ module ADUtils =
              let cert = new X509Certificate(certBytes)
              let stringify = $"{cert.Issuer}", $"{cert.Subject}", $"0x{cert.GetPublicKey () |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}"
              cert.Dispose ()
-             stringify
+             stringify // TODO: should I be returning a tuple? Maybe check the caller on this

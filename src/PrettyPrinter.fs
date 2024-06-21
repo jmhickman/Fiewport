@@ -18,19 +18,18 @@ module PrettyPrinter =
         match ticks with
         | Int64.MaxValue -> "no expiry"
         | _ -> 
-            DateTime (1601, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            |> fun epoch ->
-                epoch.AddTicks ticks
-                |> fun date -> date.ToShortDateString ()
+            DateTime (1601, 1, 1, 0, 0, 0, DateTimeKind.Utc) // TODO: Consider statically storing this value?
+            |> fun epoch -> epoch.AddTicks ticks
+            |> fun date -> date.ToShortDateString ()
             
-    let private returnTimespan ticks =        
-        match ticks with
-        | Int64.MinValue -> "No limit"
+    let private returnTimespan ticks =
+        match ticks with // TODO: Do we need to check the MaxValue case? I don't remember
+        | Int64.MinValue -> "no expiry"
         | _ -> TimeSpan.FromTicks (abs ticks) |> fun time -> time.TotalHours.ToString ()
 
 
     ///
-    /// Special treatment for int64 values that encode represent ticks.
+    /// Special treatment for int64 values that encode ticks.
     let private handleInt64s key (value: int64) =
         match key with
         | "accountexpires" | "badpasswordtime" | "creationtime"
@@ -45,7 +44,7 @@ module PrettyPrinter =
     
     ///
     /// Special treatment for int values that encode enums, usually. 
-    let private handleInts key (value: int) =        
+    let private handleInts key (value: int) =
         match key with
         | "admincount" ->
             node ([MC (Color.Red, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
@@ -65,7 +64,7 @@ module PrettyPrinter =
             sAMAccountTypesList
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
-            |> fun enum -> node ([MC (Color.Blue, $"{key}: ")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
+            |> fun enum -> node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []] // TODO: How is this different from the systemflags case?
         | "msds-supportedencryptiontypes" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readmsDSSupportedEncryptionTypes value}")] |> Many) []
         | _ -> node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value}")] |> Many) []
@@ -87,13 +86,11 @@ module PrettyPrinter =
                         [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) []] ]
         | "usercertificate" ->
             let issue, sub, pubkey = ADData.readX509Cert value
-            node
-                ([MC (Color.Blue, $"{key}:")] |> Many)
+            node ([MC (Color.Blue, $"{key}:")] |> Many)
                 [ node
                      ( [ MC (Color.White, $"Issuer: {issue}"); NL
                          MC (Color.White, $"Subject: {sub}"); NL
-                         MC (Color.White, $"PublicKey: {pubkey}") ] |> Many)
-                         [] ]
+                         MC (Color.White, $"PublicKey: {pubkey}") ] |> Many) [] ]
         | "objectguid" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{value |> Guid}") ] |> Many) []
         | _ ->
@@ -105,7 +102,7 @@ module PrettyPrinter =
     /// Special treatment for string values that need it for additional display clarity.
     let private handleStrings key (value: string list) =
         match key with
-        | "wellknownobjects" |"otherwellknownobjects" ->
+        | "wellknownobjects" | "otherwellknownobjects" ->
             node ([MC (Color.Blue, $"{key}:")] |> Many)
                 [ for item in value do //each of these just needs some values trimmed off and some type coercion 
                       let splits = item.Split ':'
@@ -189,7 +186,6 @@ module PrettyPrinter =
         /// </summary>
         /// 
         static member public print (res: LDAPSearchResult list) =
-
             match res with
             | [] -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
             | _ ->
@@ -202,5 +198,5 @@ module PrettyPrinter =
         /// use this. This function is used with <c>Tee</c> to provide console output.
         /// </summary>
         /// 
-        static member public action (res: LDAPSearchResult) =
+        static member public action (res: LDAPSearchResult) = // TODO: 'action' is probably not a very good verb here
             pPrinter.PostAndReply (fun reply -> res, reply)

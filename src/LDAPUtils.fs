@@ -89,7 +89,7 @@ module LDAPUtils =
     /// Processes SearchResults into LDAPSearchResults, placing in a Map only the attributes that appeared
     /// in the given SearchResult.
     /// 
-    let private LDAPCoercer searchType searchConfig (searchResult: SearchResult) =
+    let internal LDAPCoercer searchType searchConfig (searchResult: SearchResult) =
         [for name in searchResult.Properties.PropertyNames do yield name.ToString ()]
         |> List.fold(fun mapData attr -> mapData |> Map.add attr (unboxLDAPValue attr searchResult))
                Map.empty<string, ADDataTypes>
@@ -98,23 +98,10 @@ module LDAPUtils =
     
     ///
     /// Error message injection
-    let private decodeLDAPSearcherError error =
+    let internal decodeLDAPSearcherError error =
         match error with
         | ServerConnectionError s -> "ServerConnectionError: " + s + " Check your connection string and user/pass"
         | UnknownError80005000 s -> "UnknownError80005000: " + s
         | NoSuchObject s -> "NoSuchObject: " + s
         | InvalidDNSyntax s -> "InvalidDNSyntax: " + s
         | OtherError s -> "OtherError: " + s
-    
-    
-    /// TODO: I kind of feel like this needs to be moved up into the Searcher
-    /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
-    let internal createLDAPSearchResults searchType searchConfig (results: Result<SearchResultCollection, LDAPSearcherError>) = 
-        match results with
-            | Ok results' ->
-                [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
-            | Error e ->                
-                [{ searchType = searchType
-                   searchConfig = {searchConfig with password = "" }
-                   lDAPSearcherError = decodeLDAPSearcherError e |> Some
-                   lDAPData = Map.empty<string,ADDataTypes> }]

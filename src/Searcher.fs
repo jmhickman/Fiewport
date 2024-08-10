@@ -39,6 +39,19 @@ module Searcher =
     /// Composed pipeline of 'doing the search.'
     let private doSearch = configureDomainConnection >> configureSearcher >> findAll
     
+    
+    /// This function takes in a SearchResultCollection and returns a LDAPSearchResult
+    let private createLDAPSearchResults searchType searchConfig (results: Result<SearchResultCollection, LDAPSearcherError>) = 
+        match results with
+            | Ok results' ->
+                [for item in results' do yield item] |> List.map (LDAPCoercer searchType searchConfig)
+            | Error e ->                
+                [{ searchType = searchType
+                   searchConfig = {searchConfig with password = "" }
+                   lDAPSearcherError = decodeLDAPSearcherError e |> Some
+                   lDAPData = Map.empty<string,ADDataTypes> }]
+    
+    
     ///
     /// <summary>
     /// <para>

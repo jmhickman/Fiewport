@@ -12,6 +12,7 @@
         <Content Include="LICENSE" />
         <None Include="WorkingScript.fsx" />
         <Compile Include="src\Types.fs" />
+        <Compile Include="src\LDAPUtils.fs" />
         <Compile Include="src\Self.fs" />
         <Compile Include="src\Mold.fs" />
         <Compile Include="src\Filter.fs" />
@@ -19,7 +20,6 @@
         <Compile Include="src\LDAPConstants.fs" />
         <Compile Include="src\ADUtils.fs" />
         <Compile Include="src\PrettyPrinter.fs" />
-        <Compile Include="src\LDAPUtils.fs" />
         <Compile Include="src\Searcher.fs" />
         <None Include="ImportFiewport.fsx" />
     </ItemGroup>

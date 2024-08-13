@@ -74,7 +74,7 @@ module PrettyPrinter =
     
     ///
     /// Special treatment for byte values that need it for additional display clarity.
-    let private handleBytes key (value: byte array) =
+    let private handleBytes key (value: byte array) = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate
         match key with
         | "objectsid" ->
             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{ADData.readSID value}") ] |> Many) []
@@ -84,7 +84,7 @@ module PrettyPrinter =
                 [ node
                     ( [ MC (Color.White, $"owner: {matchKnownSids descriptor.owner}, group: {matchKnownSids descriptor.group}")
                         NL
-                        MC (Color.White, "DACLs (CommonACE)") ] |> Many)
+                        MC (Color.White, "DACLs (Groups with rights on this object, and what rights)") ] |> Many)
                         [for item in descriptor.dacl do yield node (MC (Color.White, $"{item}")) []] ]
         | "usercertificate" ->
             let issue, sub, pubkey = ADData.readX509Cert value
@@ -190,7 +190,7 @@ module PrettyPrinter =
         /// </code>
         /// </summary>
         /// 
-        static member public print (res: LDAPSearchResult list) =
+        static member public print (res: LDAPSearchResult list) = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate 
             match res with
             | [] -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
             | _ ->

@@ -59,7 +59,9 @@ module PrettyPrinter =
             |> List.map (fun enum -> enum.ToString())
             |> fun enum -> node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in enum do yield node (MC (Color.White, $"{item}")) []]
         | "useraccountcontrol" ->
-            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in (ADData.readUserAccountControl value) do yield node (MC (Color.White, $"{item}")) []]
+            node ([MC (Color.Blue, $"{key}:")] |> Many)
+                [for item in (ADData.readUserAccountControl value) do
+                     yield if item = "DONT_REQ_PREAUTH" then node (MC (Color.Red, $"{item}")) [] else node (MC (Color.White, $"{item}")) []]
         | "samaccounttype" ->
             sAMAccountTypesList
             |> List.filter (fun enum -> (value &&& int enum) = int enum)
@@ -142,16 +144,19 @@ module PrettyPrinter =
     /// is no locking. Users might stomp on this when doing their own printing in a script, but w/e.
     /// 
     let private printer (mbox: MailboxProcessor<LDAPSearchResult * AsyncReplyChannel<unit>>) =
-        
+        let mutable lastSearch = ""
         let rec ringRing () = async {
             let! msg, channel = mbox.Receive ()
             let data = [for key in msg.lDAPData.Keys do yield key, msg.lDAPData[key]]
             
+            if msg.searchType.ToString () <> lastSearch then
+                lastSearch <- msg.searchType.ToString ()
+                [MCD (Color.Wheat1, [Decoration.Underline], $"=======Search: {msg.searchType}======="); NL] |> Many |> toConsole
+            
             match msg.lDAPSearcherError with
             | None ->
-                [ MCD (Color.Wheat1, [Decoration.Underline], $"===Search: {msg.searchType}======"); NL
-                  if msg.searchConfig.filter <> "" then MC (Color.Wheat1, $"[*] Your search filter: {msg.searchConfig.filter}"); NL
-                  tree (V "attributes") (data |> List.map (fun (key, datum) -> printFormatter key datum)) |> toOutputPayload]
+                [if msg.searchConfig.filter <> "" then MC (Color.Wheat1, $"[*] Your search filter: {msg.searchConfig.filter}"); NL
+                 tree (V "[+] Result attributes") (data |> List.map (fun (key, datum) -> printFormatter key datum)) |> toOutputPayload]
                 |> Many
                 |> toConsole
             | Some err ->
@@ -189,8 +194,8 @@ module PrettyPrinter =
             match res with
             | [] -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
             | _ ->
-                MC (Color.Green1, $"[*] Found {res.Length} results") |> toConsole
                 res |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
+                MC (Color.Green1, $"[*] Printed {res.Length} results") |> toConsole
         
         ///
         /// <summary>

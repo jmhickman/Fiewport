@@ -45,13 +45,13 @@ module LDAPUtils =
         
         match count with
         | 1 ->
-            match detectedType with
-            | x when x = typeof<Int64> -> unbox<Int64> item |> ADInt64
-            | x when x = typeof<int> -> unbox<int> item |> ADInt
-            | x when x = typeof<string> -> unbox<string> item |> ADString
-            | x when x = typeof<DateTime> -> unbox<DateTime> item |> ADDateTime
-            | x when x = typeof<byte array> -> unbox<byte array> item |> ADBytes
-            | x when x = typeof<bool> -> unbox<bool> item |> ADBool
+            match item with
+            | :? int64 as v -> v |> ADInt64
+            | :? int as v -> v |> ADInt
+            | :? string as v -> v |> ADString
+            | :? DateTime as v -> v |> ADDateTime
+            | :? (byte array) as v -> v |> ADBytes
+            | :? bool as v -> v |> ADBool
             | _ -> "***HIT COLLECTION TYPE THAT DIDN'T MATCH: " + detectedType.ToString() |> ADString
         | _ ->
             match detectedType with

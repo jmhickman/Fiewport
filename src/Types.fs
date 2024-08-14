@@ -1,29 +1,23 @@
 ﻿namespace Fiewport
 
 open System.DirectoryServices.ActiveDirectory
-open System.DirectoryServices
+open System.DirectoryServices.Protocols
 
 [<AutoOpen>]
 module Types =
     open System
 
-    ///
-    /// <summary>Representation of unboxed data from an LDAP query.</summary>
-    /// <remarks>Some of these datatypes are speculation and aren't confirmed in real results.
-    /// I have access to a limited AD that is very simplistic, so verifying all of these is likely
-    /// impossible for me alone.
-    /// </remarks>
-    /// 
-    type ADDataTypes =
-        | ADInt64 of Int64 
-        | ADInt of int 
-        | ADBool of bool 
-        | ADBytes of byte array 
-        | ADString of string 
-        | ADDateTime of DateTime 
-        | ADStringList of string list 
-        | ADDateTimeList of DateTime list 
-        | ADBytesList of byte array list
+    // ///
+    // /// <summary>Representation of unboxed data from an LDAP query.</summary>
+    // /// <remarks>Some of these datatypes are speculation and aren't confirmed in real results.
+    // /// I have access to a limited AD that is very simplistic, so verifying all of these is likely
+    // /// impossible for me alone.
+    // /// </remarks>
+    // /// 
+    // type ADDataTypes =       
+    //     | ADBytes of byte array 
+    //     | ADString of string 
+        
     
     ///
     /// <summary>Defines a DirectorySearcher</summary>
@@ -36,7 +30,7 @@ module Types =
     /// <param name="username">Username used to connect to the AD</param>
     /// <param name="password">Password used to connect to the AD</param>
     /// 
-    type DirectorySearcherConfig =
+    type SearcherConfig =
         { properties: string array
           filter: string
           scope: SearchScope
@@ -72,14 +66,6 @@ module Types =
     
     
     ///
-    /// <summary>Defines a human-readable SDDL</summary>
-    type HumanSDDL =
-        { owner: string
-          group: string
-          dacl: string list }
-    
-    
-    ///
     /// <summary>
     /// Represents the result of an LDAP search. An AD has an arbitrary number of attributes, and all
     /// results are stored in the <c>Map</c>.
@@ -87,41 +73,10 @@ module Types =
     ///
     type LDAPSearchResult =
         { searchType: LDAPSearchType 
-          searchConfig: DirectorySearcherConfig
+          searchConfig: SearcherConfig
           lDAPSearcherError: string option
-          lDAPData: Map<string, ADDataTypes> }
-        
-        
-    ///
-    /// <summary>
-    /// A mild attempt to encode the various types of errors observed for LDAP searches
-    /// during development. I'm sure there are more.
-    /// </summary>
-    /// 
-    type LDAPSearcherError =
-        | ServerConnectionError of string
-        | UnknownError80005000 of string
-        | InvalidDNSyntax of string
-        | NoSuchObject of string
-        | OtherError of string
+          lDAPData: Map<string, string list> }
 
-
-    ///
-    /// A 'lightweight' (lazy) way to capture some Domain details without devolving into
-    /// mutually recursive record definitions. Because no one has time for that.
-    /// 
-    type ActiveDirectoryDomain =
-        { children: string list
-          domainControllers: string list
-          domainMode: DomainMode
-          domainModeLevel: int
-          forest: string
-          infrastructureRoleOwner: string
-          name: string
-          parent: string option
-          pdcRoleOwner: string
-          ridRoleOwner: string }
-            
     
     ///
     /// <summary>Defines a Filter for the <c>Tee</c></summary>    

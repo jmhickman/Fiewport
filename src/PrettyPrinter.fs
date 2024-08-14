@@ -118,25 +118,13 @@ module PrettyPrinter =
     /// Does the heavy lifting of creating the formatting for all the datatypes that Fiewport encounters.
     let private printFormatter key (datum: ADDataTypes) =
         match datum with
-        | ADBool x ->
-             node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x}")] |> Many) []
+        
         | ADString x ->
              if x.StartsWith "***HIT COLLECTION " then node ([MC (Color.Red, x)] |> Many ) [] 
-             else node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x}")] |> Many) []
-        | ADInt x ->
-            handleInts key x
-        | ADInt64 x ->
-            handleInt64s key x
+             else node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x}")] |> Many) []        
         | ADBytes x ->
             handleBytes key x
-        | ADDateTime x ->
-            node ([MC (Color.Blue, $"{key}:"); MC (Color.White, $"{x.ToShortDateString ()}")] |> Many) []
-        | ADStringList x ->
-            handleStrings key x
-        | ADBytesList x ->
-            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield handleBytes key item]
-        | ADDateTimeList x ->
-            node ([MC (Color.Blue, $"{key}:")] |> Many) [for item in x do yield node (MC (Color.White, $"{item.ToShortDateString ()}")) []]
+        
 
     
     ///

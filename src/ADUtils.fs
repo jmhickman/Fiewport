@@ -33,24 +33,11 @@ module ADUtils =
     /// 
     type ADData = class end
          with
-         
-         static member public unwrapADInt64 adInt64 =
-             match adInt64 with
-             | ADInt64 x -> x
-             | _ -> 0L
-
-
-         static member public unwrapADInt adInt =
-             match adInt with
-             | ADInt x -> x
-             | _ -> 0
-
 
          static member public unwrapADBytes adBytes =
              match adBytes with
              | ADBytes x -> x
              | _ -> [||]
-
 
          static member public unwrapADString adString =
              match adString with
@@ -58,22 +45,7 @@ module ADUtils =
              | _ -> ""
 
 
-         static member public unwrapADDateTime adDateTime =
-             match adDateTime with
-             | ADDateTime x -> x
-             | _ -> DateTime.UnixEpoch
-
-
-         static member public unwrapADStrings adStrings =
-             match adStrings with
-             | ADStringList x -> x
-             | _ -> [""]
-
-
-         static member public unwrapADDateTimes unwrapADDateTime =
-             match unwrapADDateTime with
-             | ADDateTimeList x -> x
-             | _ -> [DateTime.UnixEpoch]
+         
 
 
          static member internal readSecurityDescriptor bytes =

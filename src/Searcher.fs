@@ -1,11 +1,12 @@
 ﻿namespace Fiewport
 
-open System.DirectoryServices
-open Types
-open LDAPUtils
+
 
 [<AutoOpen>]
 module Searcher =
+    open System.DirectoryServices.Protocols
+    open Types
+    open LDAPUtils
     
     ///
     /// Linkage to DomainSearcher module
@@ -20,24 +21,7 @@ module Searcher =
         getDomainSearcher config domain
         
     
-    ///
-    /// Calls FindAll() on the DirectorySearcher, encodes some of the ways it can blow up
-    let private findAll (searcher: DirectorySearcher) =
-        try
-            searcher.FindAll() |> Ok
-        with
-            exn ->
-                match exn with
-                | x when x.Message = "The server is not operational." -> x.Message |> ServerConnectionError|> Error
-                | x when x.Message = "Unknown error (0x80005000)" -> x.Message |> UnknownError80005000 |> Error
-                | x when x.Message = "An invalid dn syntax has been specified." -> x.Message |> InvalidDNSyntax|> Error
-                | x when x.Message = "There is no such object on the server." -> x.Message |> NoSuchObject |> Error
-                | x -> x.Message |> OtherError |> Error
-    
-    
-    ///
-    /// Composed pipeline of 'doing the search.'
-    let private doSearch = configureDomainConnection >> configureSearcher >> findAll
+
     
     
     /// This function takes in a SearchResultCollection and returns a LDAPSearchResult

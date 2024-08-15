@@ -10,11 +10,7 @@ open System.Security.Principal
 [<AutoOpen>]
 module ADUtils =
      
-    let internal getAccessFlags accessMask =
-        activeDirectoryRightsList
-        |> List.filter (fun enum -> (accessMask &&& int enum) = int enum)
-        |> List.map (fun enum -> enum.ToString())
-        |> String.concat ", "
+
 
 
     let internal matchKnownSids sid =        

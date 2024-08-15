@@ -7,16 +7,16 @@ open System.DirectoryServices.Protocols
 module Types =
     open System
 
-    // ///
-    // /// <summary>Representation of unboxed data from an LDAP query.</summary>
-    // /// <remarks>Some of these datatypes are speculation and aren't confirmed in real results.
-    // /// I have access to a limited AD that is very simplistic, so verifying all of these is likely
-    // /// impossible for me alone.
-    // /// </remarks>
-    // /// 
-    // type ADDataTypes =       
-    //     | ADBytes of byte array 
-    //     | ADString of string 
+    ///
+    /// <summary>Representation of unboxed data from an LDAP query.</summary>
+    /// <remarks>Some of these datatypes are speculation and aren't confirmed in real results.
+    /// I have access to a limited AD that is very simplistic, so verifying all of these is likely
+    /// impossible for me alone.
+    /// </remarks>
+    /// 
+    type ADDataTypes =       
+        | ADBytes of byte array 
+        | ADString of string 
         
     
     ///
@@ -33,8 +33,9 @@ module Types =
     type SearcherConfig =
         { properties: string array
           filter: string
+          ldapDN: string
           scope: SearchScope
-          ldapDomain: string
+          ldapHost: string
           username: string
           password: string }
         
@@ -74,8 +75,8 @@ module Types =
     type LDAPSearchResult =
         { searchType: LDAPSearchType 
           searchConfig: SearcherConfig
-          lDAPSearcherError: string option
-          lDAPData: Map<string, string list> }
+          ldapSearcherError: string option
+          ldapData: Map<string, string list> }
 
     
     ///

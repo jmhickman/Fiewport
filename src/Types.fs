@@ -76,7 +76,7 @@ module Types =
         { searchType: LDAPSearchType 
           searchConfig: SearcherConfig
           ldapSearcherError: string option
-          ldapData: Map<string, string list> }
+          ldapData: Map<string, string list> list }
 
     
     ///

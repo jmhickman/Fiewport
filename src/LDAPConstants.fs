@@ -1,7 +1,9 @@
 ﻿namespace Fiewport
 
 module LDAPConstants =
+    open System
     
+    let beginningOfEpoch = DateTime (1601, 1, 1, 0, 0, 0, DateTimeKind.Utc)
     ///
     /// An Enum that doesn't look like one. 
     let uacPropertyFlags =
@@ -186,6 +188,23 @@ module LDAPConstants =
           ActiveDirectoryRights.WriteProperty ]
         
         
+    type instanceTypes =
+        | HeadOfNamingContext = 0x00000001
+        | ReplicaNotInstantiated = 0x00000002
+        | WritableOnThisDirectory = 0x00000004
+        | NamingContextAboveIsHeld = 0x00000008
+        | NamingContextBeingConstructed = 0x00000010
+        | NamingContextBeingRemoved = 0x00000020
+
+
+    let instanceTypesList =
+        [ instanceTypes.HeadOfNamingContext
+          instanceTypes.ReplicaNotInstantiated
+          instanceTypes.WritableOnThisDirectory
+          instanceTypes.NamingContextAboveIsHeld
+          instanceTypes.NamingContextBeingConstructed
+          instanceTypes.NamingContextBeingRemoved ]
+    
     let wellKnownSids =
        Map [ "S-1-0", "Null"
              "S-1-1", "World"

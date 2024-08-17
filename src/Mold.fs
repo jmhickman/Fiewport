@@ -2,7 +2,6 @@
 
 [<AutoOpen>]
 module Mold =
-    
 
     type Mold = class end
     

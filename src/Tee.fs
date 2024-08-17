@@ -36,7 +36,7 @@ module Tee =
             /// </summary>
             /// 
             static member public mold (mold: Mold<'T>) (action: MoldAction<'T>) results =
-                results |> mold |> List.iter action
+                results |> mold |> action
                 results
 
             // TODO: Is it worth it to add filterAndPrint?

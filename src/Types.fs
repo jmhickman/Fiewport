@@ -1,11 +1,10 @@
 ﻿namespace Fiewport
 
-open System.DirectoryServices.ActiveDirectory
-open System.DirectoryServices.Protocols
-
 [<AutoOpen>]
 module Types =
-    open System
+    open System.DirectoryServices.Protocols
+    
+    open MessagePack
 
     ///
     /// <summary>Representation of unboxed data from an LDAP query.</summary>
@@ -30,40 +29,43 @@ module Types =
     /// <param name="username">Username used to connect to the AD</param>
     /// <param name="password">Password used to connect to the AD</param>
     /// 
+    [<MessagePackObject>]
     type SearcherConfig =
-        { properties: string array
-          filter: string
-          ldapDN: string
-          scope: SearchScope
-          ldapHost: string
-          username: string
-          password: string }
+        { [<Key(0)>]properties: string array
+          [<Key(1)>]filter: string
+          [<Key(2)>]ldapDN: string
+          [<Key(3)>]scope: SearchScope
+          [<Key(4)>]ldapHost: string
+          [<Key(5)>]username: string
+          [<Key(6)>]password: string }
         
     ///
     /// <summary>Defines the batteries-included searches</summary> 
+    [<MessagePackObject>]
     type LDAPSearchType =
-        | GetUsers
-        | GetComputers
-        | GetSites
-        | GetOUs
-        | GetGroups
-        | GetDomainDNSZones
-        | GetDNSRecords
-        | GetDomainSubnets
-        | GetDFSShares
-        | GetGroupPolicyObjects
-        | GetDomainTrusts
-        | GetDomainObjects
-        | GetDomainControllers
-        | GetHostsTrustedForDelegation
-        | GetReportedServersNotDC
-        | GetContainers
-        | GetUsersWithSPNs
-        | GetConstrainedDelegates
-        | GetASREPTargets
-        | GetKerberoastTargets
-        | GetProtectedUsers
-        | GetGroupsWithLocalAdminRights
+        | [<Key(0)>] GetUsers
+        | [<Key(1)>] GetComputers
+        | [<Key(2)>] GetSites
+        | [<Key(3)>] GetOUs
+        | [<Key(4)>] GetGroups
+        | [<Key(5)>] GetDomainDNSZones
+        | [<Key(6)>] GetDNSRecords
+        | [<Key(7)>] GetDomainSubnets
+        | [<Key(8)>] GetDFSShares
+        | [<Key(9)>] GetGroupPolicyObjects
+        | [<Key(10)>] GetDomainTrusts
+        | [<Key(11)>] GetDomainObjects
+        | [<Key(12)>] GetDomainControllers
+        | [<Key(13)>] GetHostsTrustedForDelegation
+        | [<Key(14)>] GetReportedServersNotDC
+        | [<Key(15)>] GetContainers
+        | [<Key(16)>] GetUsersWithSPNs
+        | [<Key(17)>] GetConstrainedDelegates
+        | [<Key(18)>] GetASREPTargets
+        | [<Key(19)>] GetKerberoastTargets
+        | [<Key(20)>] GetProtectedUsers
+        | [<Key(21)>] GetGroupsWithLocalAdminRights
+        | [<Key(22)>] DumpAD
     
     
     ///
@@ -72,11 +74,12 @@ module Types =
     /// results are stored in the <c>Map</c>.
     /// </summary>
     ///
+    [<MessagePackObject>]
     type LDAPSearchResult =
-        { searchType: LDAPSearchType 
-          searchConfig: SearcherConfig
-          ldapSearcherError: string option
-          ldapData: Map<string, string list> list }
+        { [<Key(0)>]searchType: LDAPSearchType 
+          [<Key(1)>]searchConfig: SearcherConfig
+          [<Key(2)>]ldapSearcherError: string option
+          [<Key(3)>]ldapData: Map<string, string list> list }
 
     
     ///
@@ -86,7 +89,7 @@ module Types =
     
     ///
     /// <summary>Defines a Mold for the <c>Tee</c></summary>    
-    type Mold<'T> = LDAPSearchResult list -> 'T list
+    type Mold<'T> = LDAPSearchResult list -> 'T
     
     
     ///

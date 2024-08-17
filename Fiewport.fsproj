@@ -13,7 +13,7 @@
         <None Include="WorkingScript.fsx" />
         <Compile Include="src\Types.fs" />
         <Compile Include="src\LDAPConstants.fs" />
-        <Compile Include="src\LDAPBytesHandlers.fs" />
+        <Compile Include="src\LDAPDataHandlers.fs" />
         <Compile Include="src\LDAPUtils.fs" />
         <Compile Include="src\Mold.fs" />
         <Compile Include="src\Filter.fs" />

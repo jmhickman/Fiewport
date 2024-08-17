@@ -1,6 +1,6 @@
 namespace Fiewport
 
-module LDAPBytesHandlers =
+module LDAPDataHandlers =
     open System
     open System.Text
     open System.Net
@@ -97,8 +97,8 @@ module LDAPBytesHandlers =
         
     let internal handleLogonHours (map: Map<string, ADDataTypes list>) =
         let decider bytes =
-            if bytes >= 32uy && bytes <= 126uy then ($"{bytes}" |> ADString)
-            else ( $"%02X{bytes}" |> ADString)
+            if bytes >= 32uy && bytes <= 126uy then $"{bytes}"
+            else $"%02X{bytes}" 
         
         match map.ContainsKey "logonhours" with // should always have one, but w/e
         | true ->
@@ -109,7 +109,8 @@ module LDAPBytesHandlers =
                 bytes
                 |> Array.map decider
                 |> List.ofArray
-                |> fun strings -> map.Add("logonhours", strings)
+                |> String.concat " " |> ADString
+                |> fun strings -> map.Add("logonhours", [strings])
             | _ -> map
         | false -> map
 
@@ -335,5 +336,8 @@ module LDAPBytesHandlers =
          
     let handleRepSto (map: Map<string, string list>) =
          match map.ContainsKey "repsto" with
-         | true -> map.Remove "repsto"             
-         | false -> map        
+         | true -> map.Remove "repsto"
+         | false -> map
+
+
+    // domain trust types: trustattributes, trustdirection, trustposixoffset, trusttype

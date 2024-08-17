@@ -6,7 +6,7 @@ module LDAPUtils =
     open System.Net
 
     open Types
-    open LDAPBytesHandlers
+    open LDAPDataHandlers
 
 
     let internal readyLDAPSearch config =
@@ -19,6 +19,7 @@ module LDAPUtils =
                 sr.Controls.Add(SecurityDescriptorFlagControl(SecurityMasks.Dacl ||| SecurityMasks.Group ||| SecurityMasks.Owner)) |> ignore
                 sr
         (connection, searchRequest)
+
     
     let runByteHandlers =
         handleNtSecurityDescriptor >> handleObjectSid >> handleDNSRecord >> handleSecurityIdentifier >> handleObjectGuid
@@ -28,6 +29,7 @@ module LDAPUtils =
         handleGenericStrings >> handleThingsWithTicks >> handleThingsWithTimespans >> handleThingsWithZulus
         >> handleGroupType >> handleSystemFlags >> handleUserAccountControl >> handleSamAccountType
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
+
     
     let createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<SearchResponse, string>) =
         match results with

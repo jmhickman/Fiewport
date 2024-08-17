@@ -21,17 +21,17 @@ module LDAPUtils =
         (connection, searchRequest)
 
     
-    let runByteHandlers =
+    let private runByteHandlers =
         handleNtSecurityDescriptor >> handleObjectSid >> handleDNSRecord >> handleSecurityIdentifier >> handleObjectGuid
         >> handlemsdfsrReplicationGroupGuid >> handleUserCertificate >> handleLogonHours >> handleDSASignature
         
-    let runStringHandlers =
+    let private runStringHandlers =
         handleGenericStrings >> handleThingsWithTicks >> handleThingsWithTimespans >> handleThingsWithZulus
         >> handleGroupType >> handleSystemFlags >> handleUserAccountControl >> handleSamAccountType
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
 
     
-    let createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<SearchResponse, string>) =
+    let internal createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<SearchResponse, string>) =
         match results with
         | Ok res ->
             let ldapData = // need to handle objectsid, ntsecdes, objectguid, usercert

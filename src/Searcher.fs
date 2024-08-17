@@ -7,7 +7,7 @@ module Searcher =
     open LDAPUtils
 
 
-    let doSearch config =
+    let private doSearch config =
         let connection, searcher = readyLDAPSearch config
         try 
             connection.SendRequest searcher :?> SearchResponse |> Ok
@@ -404,5 +404,11 @@ module Searcher =
                 {c with filter = $"""(&(objectCategory=group)(memberOf=CN=Administrators,CN=Builtin,{c.ldapDN}))"""})
             |> List.map doSearch
             |> List.map2 (createLDAPSearchResults LDAPSearchType.GetGroupsWithLocalAdminRights) config
-            
-//TODO: Dump domain as previous getDomainObjects behavior?
+
+
+        static member public dumpDomainObjects (config: SearcherConfig list) =
+            config
+            |> List.map (fun c ->
+                {c with filter = $"(objectclass=*)"})
+            |> List.map doSearch
+            |> List.map2 (createLDAPSearchResults LDAPSearchType.DumpAD) config

@@ -94,7 +94,7 @@ module Types =
     
     ///
     /// <summary>Defines a FilterAction for the <c>Tee</c></summary>    
-    type FilterAction = LDAPSearchResult -> unit
+    type FilterAction = LDAPSearchResult list -> unit
     
     
     ///

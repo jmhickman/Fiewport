@@ -22,8 +22,8 @@ module Tee =
             /// |> ignore</code>
             /// </summary>
             /// 
-            static member public filter (filter: Filter) (action: FilterAction) (results: LDAPSearchResult list) =
-                results |> filter |> List.iter action
+            static member public filter (filter: Filter) (action: FilterAction) results =
+                results |> filter |> action
                 results
 
 

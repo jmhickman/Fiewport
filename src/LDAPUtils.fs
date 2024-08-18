@@ -29,6 +29,7 @@ module LDAPUtils =
         handleGenericStrings >> handleThingsWithTicks >> handleThingsWithTimespans >> handleThingsWithZulus
         >> handleGroupType >> handleSystemFlags >> handleUserAccountControl >> handleSamAccountType
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
+        >> handleTrustType >> handleTrustAttibutes >> handleTrustDirection
 
     
     let internal createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<SearchResponse, string>) =

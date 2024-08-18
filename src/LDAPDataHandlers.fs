@@ -188,6 +188,7 @@ module LDAPDataHandlers =
             let ticks' = Int64.Parse ticks
             match ticks' with
             | Int64.MaxValue -> "no expiry"
+            | 0L -> "never logged in/out"
             | _ ->
                 beginningOfEpoch
                 |> fun epoch -> epoch.AddTicks ticks'
@@ -340,4 +341,30 @@ module LDAPDataHandlers =
          | false -> map
 
 
-    // domain trust types: trustattributes, trustdirection, trustposixoffset, trusttype
+    let handleTrustAttibutes (map: Map<string, string list>) =
+         match map.ContainsKey "trustattributes" with
+         | true ->
+             let value = map["trustattributes"] |> List.head
+             let map = map.Remove "trustattributes"
+             map.Add("trustattributes", trustAttributesList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+         | false -> map
+         
+         
+    let handleTrustDirection (map: Map<string, string list>) =
+         match map.ContainsKey "trustdirection" with
+         | true ->
+             let value = map["trustdirection"] |> List.head
+             let map = map.Remove "trustdirection"
+             map.Add("trustdirection", trustDirectionList |> List.filter (fun p -> (int value = int p)) |> List.map _.ToString())
+         | false -> map
+
+
+    let handleTrustType (map: Map<string, string list>) =
+         match map.ContainsKey "trusttype" with
+         | true ->
+             let value = map["trusttype"] |> List.head
+             let map = map.Remove "trusttype"
+             map.Add("trusttype", trustTypeList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+         | false -> map
+
+    // domain trust types:  trustposixoffset

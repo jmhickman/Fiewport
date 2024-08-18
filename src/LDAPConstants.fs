@@ -205,6 +205,63 @@ module LDAPConstants =
           instanceTypes.NamingContextBeingConstructed
           instanceTypes.NamingContextBeingRemoved ]
     
+    
+    type TrustAttributes =
+        | TRUST_ATTRIBUTE_NON_TRANSITIVE = 0x00000001
+        | TRUST_ATTRIBUTE_UPLEVEL_ONLY = 0x00000002
+        | TRUST_ATTRIBUTE_QUARANTINED_DOMAIN = 0x00000004
+        | TRUST_ATTRIBUTE_FOREST_TRANSITIVE = 0x00000008
+        | TRUST_ATTRIBUTE_CROSS_ORGANIZATION = 0x00000010
+        | TRUST_ATTRIBUTE_WITHIN_FOREST = 0x00000020
+        | TRUST_ATTRIBUTE_TREAT_AS_EXTERNAL = 0x00000040
+        | TRUST_ATTRIBUTE_USES_RC4_ENCRYPTION = 0x00000080
+        | TRUST_ATTRIBUTE_CROSS_ORGANIZATION_NO_TGT_DELEGATION = 0x00000200
+        | TRUST_ATTRIBUTE_PIM_TRUST = 0x00000400
+        | TRUST_ATTRIBUTE_CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION = 0x00000800
+        
+        
+    let trustAttributesList =
+        [ TrustAttributes.TRUST_ATTRIBUTE_NON_TRANSITIVE
+          TrustAttributes.TRUST_ATTRIBUTE_UPLEVEL_ONLY
+          TrustAttributes.TRUST_ATTRIBUTE_QUARANTINED_DOMAIN
+          TrustAttributes.TRUST_ATTRIBUTE_FOREST_TRANSITIVE
+          TrustAttributes.TRUST_ATTRIBUTE_CROSS_ORGANIZATION
+          TrustAttributes.TRUST_ATTRIBUTE_WITHIN_FOREST
+          TrustAttributes.TRUST_ATTRIBUTE_TREAT_AS_EXTERNAL
+          TrustAttributes.TRUST_ATTRIBUTE_USES_RC4_ENCRYPTION
+          TrustAttributes.TRUST_ATTRIBUTE_CROSS_ORGANIZATION_NO_TGT_DELEGATION
+          TrustAttributes.TRUST_ATTRIBUTE_PIM_TRUST
+          TrustAttributes.TRUST_ATTRIBUTE_CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION ]
+
+
+    type TrustDirection =
+        | TRUST_DIRECTION_DISABLED = 0x00000000
+        | TRUST_DIRECTION_INBOUND = 0x00000001
+        | TRUST_DIRECTION_OUTBOUND = 0x00000002
+        | TRUST_DIRECTION_BIDIRECTIONAL = 0x00000003
+
+
+    let trustDirectionList =
+        [ TrustDirection.TRUST_DIRECTION_DISABLED
+          TrustDirection.TRUST_DIRECTION_INBOUND
+          TrustDirection.TRUST_DIRECTION_OUTBOUND
+          TrustDirection.TRUST_DIRECTION_BIDIRECTIONAL ]
+
+
+    type TrustType =
+        | TRUST_TYPE_DOWNLEVEL = 0x00000001
+        | TRUST_TYPE_UPLEVEL = 0x00000002
+        | TRUST_TYPE_MIT = 0x00000003
+        | TRUST_TYPE_DCE = 0x00000004
+
+
+    let trustTypeList =
+        [ TrustType.TRUST_TYPE_DOWNLEVEL
+          TrustType.TRUST_TYPE_UPLEVEL
+          TrustType.TRUST_TYPE_MIT
+          TrustType.TRUST_TYPE_DCE ]
+
+
     let wellKnownSids =
        Map [ "S-1-0", "Null"
              "S-1-1", "World"

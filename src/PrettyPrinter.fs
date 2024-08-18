@@ -8,7 +8,7 @@ module PrettyPrinter =
     
     let printFormatter (map: Map<string, string list>) : TreeNode list =
         let keys = [for key in map.Keys do yield key]
-        keys |> List.map (fun key -> node ([MCD (Color.LightCyan1, [Decoration.Bold], key); NL] |> Many) [for value in map[key] do yield node ([MC (Color.White, value)] |> Many) []])    
+        keys |> List.map (fun key -> node ([MCD (Color.LightCyan3, [Decoration.Bold], key); NL] |> Many) [for value in map[key] do yield node ([MC (Color.White, value)] |> Many) []])    
     
     ///
     /// Simple MailboxProcessor for handling printing. All console output from the library flows through here, so there
@@ -60,11 +60,11 @@ module PrettyPrinter =
         /// </code>
         /// </summary>
         /// 
-        static member public print (res: LDAPSearchResult list) = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate 
-            match res with
+        static member public print (results: LDAPSearchResult list) = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate 
+            match results with
             | [] -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
             | _ ->
-                res |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
+                results |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
         
         ///
         /// <summary>
@@ -72,5 +72,5 @@ module PrettyPrinter =
         /// use this. This function is used with <c>Tee</c> to provide console output.
         /// </summary>
         /// 
-        static member public action (res: LDAPSearchResult) = // TODO: 'action' is probably not a very good verb here
-            pPrinter.PostAndReply (fun reply -> res, reply)
+        static member public teePrint (results: LDAPSearchResult list) =
+            results |> List.iter (fun result -> pPrinter.PostAndReply (fun reply -> result, reply))

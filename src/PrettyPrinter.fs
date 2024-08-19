@@ -19,7 +19,7 @@ module PrettyPrinter =
         let rec ringRing () = async {
             let! msg, channel = mbox.Receive ()
             let data = msg.ldapData
-                        
+            
             if msg.searchType.ToString () <> lastSearch then
                 lastSearch <- msg.searchType.ToString ()
                 MCD (Color.PaleGreen3, [Decoration.Underline], $"=======Search: {msg.searchType}=======") |> toConsole
@@ -30,7 +30,7 @@ module PrettyPrinter =
                 |> Many
                 |> toConsole
             | Some err ->
-                [ MC (Color.PaleGreen3, $"[-]Search config: {msg.searchConfig.ldapHost} == {msg.searchConfig.username} == {msg.searchConfig.filter}=={msg.searchConfig.ldapDN}"); NL
+                [ MC (Color.PaleGreen3, $"[-]Search config: {msg.searchConfig.ldapHost} == {msg.searchConfig.username} == {msg.searchConfig.ldapDN}"); NL
                   MC (Color.Red, err ) ]
                 |> Many
                 |> toConsole

@@ -20,22 +20,26 @@ A short demonstration of Fiewport in a script might look like this:
 
 ```fsharp
 #r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
 
 open Fiewport
 open System.DirectoryServices.Protocols
 
-let config = 
-    { properties = [||] // leave empty for all possible properties
-      filter = "" // the LDAP search filter
+let config =
+    { properties = [||]
+      filter = ""
+      ldapDN = "DC=sevenkingdoms,DC=local"
       scope = SearchScope.Subtree
-      ldapDN = "DC=northernkingdoms,DC=local" // server's DN
-      ldapHost = "192.168.56.10"
+      ldapHost = "192.168.56.10" 
       username = "samwell.tarly"
       password = "Heartsbane" }
+    
 
 [config]
 |> Searcher.getUsers
-|> PrettyPrinter.prettyPrint
+|> PrettyPrinter.print
 ```
 As it suggests, this will create a connection to an active directory located at `northernkingdoms.local` with the provided credentials. Fiewport does not assume your computer is connected to the AD you want to examine, so this information is necessary. It also allows you to control what user(s) you chose to enumerate with.
 
@@ -48,10 +52,13 @@ Additionally, putting attributes into the `properties` array allows you to trim 
 For example, if you know you only cared about "name" "memberOf" and "primaryGroupID" for the `getUsers` search:
 
 ```fsharp
-#load "ImportFiewport.fsx"
+#r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
 
-open Fiewport // mandatory
-open System.DirectoryServices // mandatory
+open Fiewport
+open System.DirectoryServices.Protocols
 
 let config = 
     { properties = [|"name"; "memberOf"; "primaryGroupID"|]
@@ -67,7 +74,7 @@ let config =
 |> PrettyPrinter.prettyPrint
 ```
 
-![only these properties](only-properties.png) // update for GOAD
+![only these properties](only-properties.png)
 
 > ⚠️ Be careful when restricting LDAP searchers to certain properties! If you combine restricted properties with a `Filter` and you try to filter for a property that isn't present, you'll just get empty results!
 
@@ -75,19 +82,43 @@ Since connection `config`s aren't global, you can store multiple configs with di
 
 ### Searchers
 
-Fiewport exposes a `Searcher` with many pre-built LDAP queries built into it. Your IDE of choice should expose all of them to you, and all of them have some documentation of what filter they are using.
+Fiewport exposes a `Searcher` with many pre-built LDAP queries built into it. Your IDE of choice should expose all of them to you, and all of them have some documentation of what filter they are using. `Searcher.getUsers` performs a search to get users from the AD, for example.
 
 All Searchers yield a `List`. The list can then be used in a variety of ways, explained below.
 
-`Searcher.getUsers` performs a search to get users from the AD, for example.
-
 A typical individual user result from the search might look like this:
 
-![typical result](user-result.png)  // update for GOAD
+![typical result](user-result.png)
 
-The top line indicates the source of the search.
+The current built-in searchers are:
+```fsharp
+getUsers
+getComputers
+getSites
+getOUs
+getGroups
+getDomainDNSZones
+getDNSRecords
+getDomainSubnets
+getDFSShares
+getGroupPolicyObjects
+getDomainTrusts
+getDomainObjects
+getDomainControllers
+getHostsTrustedForDelegation
+getReportedServersNotDC
+getContainers
+getUsersWithSPNs
+getConstrainedDelegates
+getASREPTargets
+getKerberoastTargets
+getProtectedUsers
+getGroupsWithLocalAdminRights
+dumpAD
 
-In addition to the `Searcher` and the `PrettyPrinter`, Fiewport exposes `Filter`s, `Mold`s and `Tee`s
+```
+
+In addition to the `Searcher`, Fiewport exposes `Filter`s, `Mold`s `Tee`s and a `Serialize` function.
 
 ### Filter
 
@@ -96,10 +127,14 @@ The `Filter` has a few static methods that will come in handy when you want to..
 Expanding our previous example:
 
 ```fsharp
-#load "ImportFiewport.fsx"
+#r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
 
 open Fiewport
-open System.DirectoryServices
+open System.DirectoryServices.Protocols
+
 let config = 
     { properties = [||]
       filter = ""
@@ -114,17 +149,21 @@ let config =
 |> Filter.attributePresent "adminCount"
 |> PrettyPrinter.prettyPrint
 ```
-![adminCount example](filter-example.png) // update for GOAD
+![adminCount example](filter-example.png)
 
-This `Filter` reduced 27 results down to just 3 for this AD. // update
+This `Filter` reduced results down to just 5 for this AD.
 
 We can chain it together with another `Filter` that requires an attribute to have a specific value:
 
 ```fsharp
-#load "ImportFiewport.fsx"
+#r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
 
 open Fiewport
-open System.DirectoryServices
+open System.DirectoryServices.Protocols
+
 let config = 
     { properties = [||]
       filter = ""
@@ -140,17 +179,21 @@ let config =
 |> Filter.attributeIsValue "cn" "Administrator"
 |> PrettyPrinter.prettyPrint
 ```
-This reduces the results to one. // update
+This reduces the results to one.
 
 ### Molds
 
 `Mold` is for when you want to get directly at a value from your search results. If your script has some very specific goals and you need direct access to data, `Mold` is what you want.
 
 ```fsharp
-#load "ImportFiewport.fsx"
+#r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
 
 open Fiewport
-open System.DirectoryServices
+open System.DirectoryServices.Protocols
+
 let config = 
     { properties = [||]
       filter = ""
@@ -164,26 +207,27 @@ let config =
 |> Searcher.getUsers
 |> Filter.attributePresent "memberOf"
 |> Filter.attributeIsValue "cn" "Administrator"
-// do something else
-|> List.collect ADData.unwrapADStrings
-|> List.iter sideEffectfulAction
+|> Mold.getValues // string list list list
+|> doWhateverYouLikeWithYourResults
 ```
-
-Keep in mind that `Mold` expects you to know what you're doing. 
 
 ### Tee
 
 `Tee`s are for when you want to perform compound actions for one individual search. 
 
-While you can certainly chain `Filter`s together, what you get at the end is a reduced set of results. Sometimes that's what you want, and other times not so much.
+While you can certainly chain `Filter`s together, what you get at the end is a reduced set of results. Sometimes that's what you want, but probably not always.
 
 `Tee` lets you do something like this:
 
 ```fsharp
-#load "ImportFiewport.fsx"
+#r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
 
 open Fiewport
-open System.DirectoryServices
+open System.DirectoryServices.Protocols
+
 let config = 
     { properties = [||]
       filter = ""
@@ -195,12 +239,12 @@ let config =
 
 [config]
 |> Searcher.getUsers
-|> Tee.filter (Filter.attributePresent "memberOf" >> Filter.attributeIsValue "cn" "Administrator") PrettyPrinter.prettyAction
-|> Tee.filter (Filter.attributePresent "isCriticalSystemObject" >> Filter.attributeIsValue "primaryGroupID" "513") PrettyPrinter.prettyAction
+|> Tee.filter (Filter.attributePresent "memberOf" >> Filter.attributeIsValue "cn" "Administrator") PrettyPrinter.teePrint
+|> Tee.filter (Filter.attributePresent "isCriticalSystemObject" >> Filter.attributeIsValue "primaryGroupID" "513") PrettyPrinter.teePrint
 |> ignore
 ```
 
-`Tee.filter` has a function signature of `Filter -> FilterAction -> LDAPSearchResult list -> LDAPSearchResult list`. This allows you to use the composition `>>` operator to build a `Filter` chain, and then cap the function off with the so-called `FilterAction`.
+`Tee.filter` has a function signature of `Filter -> FilterAction -> LDAPSearchResult list -> LDAPSearchResult list`. This allows you to compose a `Filter` chain, and then cap the function off with the so-called `FilterAction`.
 
 Chain `Tee`s together to do more than one thing with a single search. Out the 'bottom' of the `Tee` comes the same search results that went in. You can throw them away, as in the example above, or do whatever else you like.
 
@@ -209,6 +253,46 @@ Chain `Tee`s together to do more than one thing with a single search. Out the 'b
 ### PrettyPrinter
 
 Does what it says on the tin. Formats data into something that is a bit more readable. 
+
+
+### Serializer
+
+Fiewport now supports serializing and deserializing LDAP search results to/from disk using MessagePack with compression, making it quite small. For reference, the `dumpAD` call run against the smaller Game of Active Directory environment yielded a 56KB file.
+
+```#r "nuget: Fiewport"
+#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: EluciusFTW.SpectreCoff"
+#r "nuget: MessagePack"
+
+open Fiewport
+open System.DirectoryServices.Protocols
+
+let config =
+{ properties = [||]
+filter = ""
+scope = SearchScope.Subtree
+ldapDN = "DC=northernkingdoms,DC=local"
+ldapHost = "192.168.56.10"
+username = "samwell.tarly"
+password = "Heartsbane" }
+
+[config]
+|> Searcher.getUsers
+|> Serializer.serializeToDisk // writes "DC=sevenkingdoms,DC=local-GetUsers-lcache.bin"
+|> ignore
+```
+
+Fiewport will write a .bin file to the current working directory, named by the type of search you performed and the DN of the directory you queried. 
+
+Additionally, the `Serializer` will return the results list, so more processing can be done afterwards. 
+
+To use the bin file, simply replace the beginning of the pipeline with the deserialize call:
+
+```
+Serializer.deserializeFromDisk """C:\path\to\bin\DC=sevenkingdoms,DC=local-GetUsers-lcache.bin"""
+|> Filter.valueIs "robb.stark"
+|>PrettyPrinter.print
+```
 
 
 ### Shortcomings

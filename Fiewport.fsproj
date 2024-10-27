@@ -31,7 +31,7 @@
 
     <ItemGroup>
       <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.47.54" />
-      <PackageReference Include="MessagePack" Version="2.5.172" />
+      <PackageReference Include="MessagePack" Version="2.5.187" />
       <PackageReference Include="MessagePack.FSharpExtensions" Version="4.0.0" />
       <PackageReference Include="Spectre.Console" Version="0.47.0" />
       <PackageReference Include="System.DirectoryServices.AccountManagement" Version="7.0.1" />

@@ -148,7 +148,7 @@ module LDAPDataHandlers =
             let map = map.Remove "usercertificate"
             match certBytes with
             | [ADBytes b] ->
-                let cert = new X509Certificate(b)
+                let cert = new X509Certificate(b) // this generates a warning now for dotnet 9, wants me to use X509CertificateLoader
                 let stringify =
                     [$"Issuer: {cert.Issuer}".Trim () |> ADString] @
                     [$"Subject: {cert.Subject}".Trim () |> ADString] @

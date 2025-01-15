@@ -114,7 +114,7 @@ getASREPTargets
 getKerberoastTargets
 getProtectedUsers
 getGroupsWithLocalAdminRights
-dumpAD
+dumpDomainObjects
 
 ```
 
@@ -261,7 +261,7 @@ Does what it says on the tin. Formats data into something that is a bit more rea
 
 ### Serializer
 
-Fiewport now supports serializing and deserializing LDAP search results to/from disk using MessagePack with compression, making it quite small. For reference, the `dumpAD` call run against the smaller Game of Active Directory environment yielded a 56KB file.
+Fiewport now supports serializing and deserializing LDAP search results to/from disk using MessagePack with compression, making it quite small. For reference, the `dumpDomainObjects` call run against the smaller Game of Active Directory environment yielded a 56KB file.
 
 ```#r "nuget: Fiewport"
 #r "nuget: System.DirectoryServices.Protocols"

@@ -82,7 +82,7 @@ Since connection `config`s aren't global, you can store multiple configs with di
 
 ### Searchers
 
-Fiewport exposes a `Searcher` with many pre-built LDAP queries built into it. Your IDE of choice should expose all of them to you, and all of them have some documentation of what filter they are using. `Searcher.getUsers` performs a search to get users from the AD, for example.
+Fiewport exposes a `Searcher` with many pre-built LDAP queries included. Your IDE of choice should expose all of them to you, and all of them have some documentation of what filter they are using. `Searcher.getUsers` performs a search to get users from the AD, for example.
 
 All Searchers yield a `List`. The list can then be used in a variety of ways, explained below.
 

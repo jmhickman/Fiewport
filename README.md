@@ -124,7 +124,9 @@ In addition to the `Searcher`, Fiewport exposes `Filter`s, `Mold`s `Tee`s and a 
 
 The `Filter` has a few static methods that will come in handy when you want to...well...filter the results of your search. Rather than specifying very distinct queries using `-SearchBase` and such as in PowerView, the `Filter` allows easier and more iteration-friendly workflows.
 
-Expanding our previous example:
+Specifying properties or filters in the LDAP configuration will cause your results from the authoritative server to include only those results. That might be what you want. It's stealthier to make a generic query and to filter it down client-side. This is what `Filter` is for. It will reduce the results list down to only the item you care about.
+
+Expanding our previous example, lets add a `Filter` that requires the "adminCount" attribute to be present:
 
 ```fsharp
 #r "nuget: Fiewport"
@@ -151,7 +153,7 @@ let config =
 ```
 ![adminCount example](filter-example.png)
 
-This `Filter` reduced results down to just 5 for this AD.
+This reduced results down to just 5 for this AD.
 
 We can chain it together with another `Filter` that requires an attribute to have a specific value:
 
@@ -185,6 +187,8 @@ This reduces the results to one.
 
 `Mold` is for when you want to get directly at a value from your search results. If your script has some very specific goals and you need direct access to data, `Mold` is what you want.
 
+`Mold` has methods for returning all of the keys (attributes) for your search, all of the raw values for your search, and a 
+tupled list of the keys and values.
 ```fsharp
 #r "nuget: Fiewport"
 #r "nuget: System.DirectoryServices.Protocols"

@@ -28,7 +28,7 @@ module Serializer =
             results
             |> List.iter(fun result ->
                 use fileStream = new FileStream($"""{result.searchConfig.ldapDN}-{result.searchType}-lcache.bin""", FileMode.Create)
-                MessagePackSerializer.Serialize (fileStream, results, resolver))
+                MessagePackSerializer.Serialize (fileStream, result, resolver))
             results
             
         ///<summary>

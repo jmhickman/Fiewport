@@ -295,7 +295,7 @@ To use the bin file, simply replace the beginning of the pipeline with the deser
 ```
 Serializer.deserializeFromDisk """C:\path\to\bin\DC=sevenkingdoms,DC=local-GetUsers-lcache.bin"""
 |> Filter.valueIs "robb.stark"
-|>PrettyPrinter.print
+|> PrettyPrinter.print
 ```
 
 

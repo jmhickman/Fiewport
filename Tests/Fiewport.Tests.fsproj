@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="TestData.fs" />
+        <Compile Include="FilterTests.fs" />
+        <Compile Include="MoldTests.fs" />
+        <Compile Include="TeeTests.fs" />
+        <Compile Include="Program.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Fiewport.fsproj" />
+        <PackageReference Include="Expecto" Version="11.1.0" />
+        <PackageReference Include="FsCheck" Version="3.3.3" />
+    </ItemGroup>
+
+</Project>

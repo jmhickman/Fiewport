@@ -2,8 +2,10 @@
 
 [<AutoOpen>]
 module Types =
+    // Allow test cases to function
     [<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Fiewport.Tests")>]
     do ()
+    
     open System.DirectoryServices.Protocols
     
     open MessagePack

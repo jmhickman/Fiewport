@@ -8,7 +8,7 @@ module Serializer =
     open MessagePack.FSharp
     open MessagePack.Resolvers
     
-    let resolver = // this is why object programming is awful. Look at this ⬇️
+    let private resolver = 
                 MessagePackSerializerOptions.Standard
                     .WithResolver(CompositeResolver.Create(FSharpResolver.Instance,StandardResolver.Instance))
                     .WithCompression(MessagePackCompression.Lz4BlockArray)

@@ -273,7 +273,7 @@ module LDAPDataHandlers =
         | false -> map
 
 
-    let handleUserAccountControl (map: Map<string, string list>) =
+    let internal handleUserAccountControl (map: Map<string, string list>) =
         let readUserAccountControl bits =
             [for i in 0..31 do if ((int bits >>> i) &&& 1) = 1 then yield uacPropertyFlags[i]]
             

@@ -7,71 +7,101 @@ module LDAPDataHandlerTests =
 
     let dataHandlerTests =
         testList "LDAPDataHandlers" [
-            testCase "handleThingsWithTicks converts FILETIME" <| fun () ->
+            test "handleThingsWithTicks converts FILETIME" {
                 let input = TestData.mkMap [ "pwdlastset", ["132345678901234567"] ]
                 let actual = Fiewport.LDAPDataHandlers.handleThingsWithTicks input
-                Expect.stringContains "2012" (List.head actual["pwdlastset"])
+                Expect.stringContains (List.head actual.["pwdlastset"]) "2020" "year 2020 in result"
+            }
 
-            testCase "handleThingsWithTicks MaxValue is no expiry" <| fun () ->
+            test "handleThingsWithTicks MaxValue is no expiry" {
                 let input = TestData.mkMap [ "accountexpires", ["9223372036854775807"] ]
-                Expect.equal (List.head (Fiewport.LDAPDataHandlers.handleThingsWithTicks input)["accountexpires"]) "no expiry"
+                let actual = Fiewport.LDAPDataHandlers.handleThingsWithTicks input
+                Expect.equal (List.head actual.["accountexpires"]) "no expiry" "MaxValue maps to no expiry"
+            }
 
-            testCase "handleThingsWithTicks zero is never" <| fun () ->
+            test "handleThingsWithTicks zero is never" {
                 let input = TestData.mkMap [ "lastlogon", ["0"] ]
-                Expect.equal (List.head (Fiewport.LDAPDataHandlers.handleThingsWithTicks input)["lastlogon"]) "never logged in/out"
+                let actual = Fiewport.LDAPDataHandlers.handleThingsWithTicks input
+                Expect.equal (List.head actual.["lastlogon"]) "never logged in/out" "zero maps to never"
+            }
 
-            testCase "handleThingsWithTicks skips unknown keys" <| fun () ->
+            test "handleThingsWithTicks skips unknown keys" {
                 let input = TestData.mkMap [ "cn", ["test"] ]
-                Expect.equal (Fiewport.LDAPDataHandlers.handleThingsWithTicks input)["cn"] ["test"]
+                let actual = Fiewport.LDAPDataHandlers.handleThingsWithTicks input
+                Expect.equal actual.["cn"] ["test"] "unknown key unchanged"
+            }
 
-            testCase "handleUserAccountControl 512" <| fun () ->
+            test "handleUserAccountControl 512" {
                 let input = TestData.mkMap [ "useraccountcontrol", ["512"] ]
-                Expect.isTrue (List.contains "NORMAL_ACCOUNT" (Fiewport.LDAPDataHandlers.handleUserAccountControl input)["useraccountcontrol"])
+                let actual = Fiewport.LDAPDataHandlers.handleUserAccountControl input
+                Expect.isTrue (List.contains "NORMAL_ACCOUNT" actual.["useraccountcontrol"]) "512 is NORMAL_ACCOUNT"
+            }
 
-            testCase "handleUserAccountControl 66048 multi-flag" <| fun () ->
+            test "handleUserAccountControl 66048 multi-flag" {
                 let input = TestData.mkMap [ "useraccountcontrol", ["66048"] ]
                 let actual = Fiewport.LDAPDataHandlers.handleUserAccountControl input
-                Expect.isTrue (List.contains "NORMAL_ACCOUNT" actual["useraccountcontrol"])
-                Expect.isTrue (List.contains "DONT_EXPIRE_PASSWORD" actual["useraccountcontrol"])
+                Expect.isTrue (List.contains "NORMAL_ACCOUNT" actual.["useraccountcontrol"]) "contains NORMAL_ACCOUNT"
+                Expect.isTrue (List.contains "DONT_EXPIRE_PASSWORD" actual.["useraccountcontrol"]) "contains DONT_EXPIRE_PASSWORD"
+            }
 
-            testCase "handleUserAccountControl missing key" <| fun () ->
+            test "handleUserAccountControl missing key" {
                 let input = TestData.mkMap [ "cn", ["test"] ]
-                Expect.isFalse (Map.containsKey "useraccountcontrol" (Fiewport.LDAPDataHandlers.handleUserAccountControl input))
+                let actual = Fiewport.LDAPDataHandlers.handleUserAccountControl input
+                Expect.isFalse (Map.containsKey "useraccountcontrol" actual) "no useraccountcontrol key"
+            }
 
-            testCase "handleThingsWithTimespans ticks to hours" <| fun () ->
+            test "handleThingsWithTimespans ticks to hours" {
                 let input = TestData.mkMap [ "maxpwdage", ["-864000000000"] ]
-                Expect.stringContains "240" (List.head (Fiewport.LDAPDataHandlers.handleThingsWithTimespans input)["maxpwdage"])
+                let actual = Fiewport.LDAPDataHandlers.handleThingsWithTimespans input
+                Expect.stringContains (List.head actual.["maxpwdage"]) "24" "24 hours in result"
+            }
 
-            testCase "handleThingsWithTimespans MinValue" <| fun () ->
+            test "handleThingsWithTimespans MinValue" {
                 let input = TestData.mkMap [ "forcelogoff", ["-9223372036854775808"] ]
-                Expect.equal (List.head (Fiewport.LDAPDataHandlers.handleThingsWithTimespans input)["forcelogoff"]) "no expiry"
+                let actual = Fiewport.LDAPDataHandlers.handleThingsWithTimespans input
+                Expect.equal (List.head actual.["forcelogoff"]) "no expiry" "MinValue maps to no expiry"
+            }
 
-            testCase "handleThingsWithZulus" <| fun () ->
+            test "handleThingsWithZulus" {
                 let input = TestData.mkMap [ "whencreated", ["20240115123045.0Z"] ]
-                Expect.stringContains "2024" (List.head (Fiewport.LDAPDataHandlers.handleThingsWithZulus input)["whencreated"])
+                let actual = Fiewport.LDAPDataHandlers.handleThingsWithZulus input
+                Expect.stringContains (List.head actual.["whencreated"]) "2024" "year 2024 in result"
+            }
 
-            testCase "handleGroupType SECURITY" <| fun () ->
+            test "handleGroupType SECURITY" {
                 let input = TestData.mkMap [ "grouptype", ["-2147483646"] ]
-                Expect.isTrue (List.contains "SECURITY" (Fiewport.LDAPDataHandlers.handleGroupType input)["grouptype"])
+                let actual = Fiewport.LDAPDataHandlers.handleGroupType input
+                Expect.isTrue (List.contains "SECURITY" actual.["grouptype"]) "SECURITY flag present"
+            }
 
-            testCase "handleGenericStrings ADString" <| fun () ->
+            test "handleGenericStrings ADString" {
                 let input = Map.ofList [ "cn", [Fiewport.Types.ADString "test"] ]
-                Expect.equal (Fiewport.LDAPDataHandlers.handleGenericStrings input)["cn"] ["test"]
+                let actual = Fiewport.LDAPDataHandlers.handleGenericStrings input
+                Expect.equal actual.["cn"] ["test"] "ADString converted"
+            }
 
-            testCase "handleGenericStrings ADBytes to UTF-8" <| fun () ->
+            test "handleGenericStrings ADBytes to UTF-8" {
                 let bytes = System.Text.Encoding.UTF8.GetBytes "hello"
                 let input = Map.ofList [ "description", [Fiewport.Types.ADBytes bytes] ]
-                Expect.equal (Fiewport.LDAPDataHandlers.handleGenericStrings input)["description"] ["hello"]
+                let actual = Fiewport.LDAPDataHandlers.handleGenericStrings input
+                Expect.equal actual.["description"] ["hello"] "ADBytes decoded as UTF-8"
+            }
 
-            testCase "handleTrustDirection OUTBOUND" <| fun () ->
+            test "handleTrustDirection OUTBOUND" {
                 let input = TestData.mkMap [ "trustdirection", ["2"] ]
-                Expect.isTrue (List.contains "TRUST_DIRECTION_OUTBOUND" (Fiewport.LDAPDataHandlers.handleTrustDirection input)["trustdirection"])
+                let actual = Fiewport.LDAPDataHandlers.handleTrustDirection input
+                Expect.isTrue (List.contains "TRUST_DIRECTION_OUTBOUND" actual.["trustdirection"]) "OUTBOUND present"
+            }
 
-            testCase "handleRepSto removes repsto" <| fun () ->
+            test "handleRepSto removes repsto" {
                 let input = TestData.mkMap [ "repsto", ["CN=DC,DC=test"] ]
-                Expect.isFalse (Map.containsKey "repsto" (Fiewport.LDAPDataHandlers.handleRepSto input))
+                let actual = Fiewport.LDAPDataHandlers.handleRepSto input
+                Expect.isFalse (Map.containsKey "repsto" actual) "repsto removed"
+            }
 
-            testCase "handleInstanceType WritableOnThisDirectory" <| fun () ->
+            test "handleInstanceType WritableOnThisDirectory" {
                 let input = TestData.mkMap [ "instancetype", ["4"] ]
-                Expect.isTrue (List.contains "WritableOnThisDirectory" (Fiewport.LDAPDataHandlers.handleInstanceType input)["instancetype"])
+                let actual = Fiewport.LDAPDataHandlers.handleInstanceType input
+                Expect.isTrue (List.contains "WritableOnThisDirectory" actual.["instancetype"]) "WritableOnThisDirectory present"
+            }
         ]

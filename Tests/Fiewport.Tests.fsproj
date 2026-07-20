@@ -8,6 +8,7 @@
     <ItemGroup>
         <Compile Include="TestData.fs" />
         <Compile Include="FilterTests.fs" />
+        <Compile Include="LDAPDataHandlerTests.fs" />
         <Compile Include="MoldTests.fs" />
         <Compile Include="TeeTests.fs" />
         <Compile Include="Program.fs" />

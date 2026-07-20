@@ -9,6 +9,7 @@ module Program =
             FilterTests.filterTests
             MoldTests.moldTests
             TeeTests.teeTests
+            LDAPDataHandlerTests.dataHandlerTests
         ]
 
     [<EntryPoint>]

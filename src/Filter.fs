@@ -44,7 +44,7 @@ module Filter =
         /// </summary>
         ///  
         static member public attributeIsValue (attr: string) (value: string) (results: LDAPSearchResult list) =
-            results |> (attributePresent attr ) |> (valueIs value)
+            results |> attributePresent attr |> valueIs value
 
 
         ///

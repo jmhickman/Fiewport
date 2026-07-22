@@ -31,7 +31,12 @@ module LDAPDataHandlers =
             let revision = int bytes[0]
             let subAuthCount = int bytes[1]
             let authority =
-                (int bytes[2] <<< 32) ||| (int bytes[3] <<< 24) ||| (int bytes[4] <<< 16) ||| (int bytes[5] <<< 8) ||| int bytes[6] ||| (int bytes[7] &&& 0xFF)
+                int bytes[2] <<< 32 ||| 
+                (int bytes[3] <<< 24) ||| 
+                (int bytes[4] <<< 16) ||| 
+                (int bytes[5] <<< 8) ||| 
+                int bytes[6] ||| 
+                (int bytes[7] &&& 0xFF)
                 |> int64
                 |> int32
 
@@ -41,8 +46,7 @@ module LDAPDataHandlers =
                     if offset + 4 <= Array.length bytes then
                         yield sprintf "%u" (BitConverter.ToUInt32(bytes, offset))]
 
-            let subAuthStr = String.concat "-" subAuthorities
-            $"S-{revision}-{authority}-{subAuthStr}"
+            $"""S-{revision}-{authority}-{String.concat "-" subAuthorities}"""
 
     let internal decodeNtSecurityDescriptors bytes =
         let matchKnownSids sid =

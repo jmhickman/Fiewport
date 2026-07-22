@@ -20,6 +20,7 @@
         <Compile Include="src\Types.fs" />
         <Compile Include="src\FileOperations.fs" />
         <Compile Include="src\LDAPConstants.fs" />
+        <Compile Include="src\SecurityDescriptor.fs" />
         <Compile Include="src\LDAPDataHandlers.fs" />
         <Compile Include="src\LDAPUtils.fs" />
         <Compile Include="src\Mold.fs" />

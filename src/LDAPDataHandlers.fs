@@ -8,7 +8,7 @@ module LDAPDataHandlers =
     open Types
     open LDAPConstants
 
-
+    ///
     /// Decode an LDAP SID byte array into its human-readable string form (e.g. "S-1-5-21-...").
     ///
     /// Per Microsoft's SID binary layout (MS-DTYP §2.4):
@@ -23,6 +23,7 @@ module LDAPDataHandlers =
     /// Identifier Authority is assembled from its 6 big-endian bytes into a single integer;
     /// the low byte (offset 7) is masked with 0xFF to avoid sign-extension from int32 promotion.
     /// SubAuthorities are read as little-endian uint32 values starting at offset 8.
+    /// 
     let internal decodeSidFromBytes (bytes: byte[]) =
         match Array.length bytes with
         | len when len < 8 ->
@@ -48,54 +49,6 @@ module LDAPDataHandlers =
 
             $"""S-{revision}-{authority}-{String.concat "-" subAuthorities}"""
 
-    let internal decodeNtSecurityDescriptors bytes =
-        let matchKnownSids sid =
-            if wellKnownSids.ContainsKey sid then wellKnownSids[sid]
-            else if networkSids.ContainsKey (sid.Split '-' |> Array.last) then networkSids[sid.Split '-' |> Array.last]
-            else sid
-            
-        let getAccessFlags accessMask =
-            activeDirectoryRightsList
-            |> List.filter (fun enum -> (accessMask &&& int enum) = int enum)
-            |> List.map (fun enum -> enum.ToString())
-            |> String.concat ", "
-        
-        // Cross-platform security descriptor + ACL parser
-        // SD header: Revision(1) + Byte2(1) + Control(2) + Owner(4) + Group(4) + SACL(4) + DACL(4) = 20 bytes
-        let parseSd (bytes: byte[]) =
-            if Array.length bytes < 20 then []
-            else
-                // Get DACL offset from security descriptor header (offset 16-19)
-                let daclOffset = BitConverter.ToInt32(bytes, 16)
-                if daclOffset = 0 || daclOffset + 8 > Array.length bytes then []
-                else
-                    // ACL header: AclRevision(1) + Unused(1) + Size(2) + AceCount(2) + Unused(2) = 8 bytes
-                    let aceCount = int (BitConverter.ToUInt16(bytes, daclOffset + 4))
-                    let aclStart = daclOffset + 8
-                    let rec loop acc i curOffset =
-                        if i >= aceCount || curOffset + 8 > Array.length bytes then acc
-                        else
-                            let aceType = bytes[curOffset]
-                            let aceSize = int (BitConverter.ToUInt16(bytes, curOffset + 2))
-                            if aceSize < 8 then
-                                loop acc (i + 1) (curOffset + 4)
-                            else
-                                let sidOffset = curOffset + 8
-                                let sidSize = aceSize - 8
-                                let nextOffset = curOffset + (aceSize &&& ~~~3) // round up to 4-byte boundary
-                                if sidOffset + sidSize > Array.length bytes then
-                                    loop acc (i + 1) nextOffset
-                                else
-                                    let sidBytes = Array.sub bytes sidOffset sidSize
-                                    let sid = decodeSidFromBytes sidBytes
-                                    let accessMask = BitConverter.ToInt32(bytes, curOffset + 4)
-                                    let flags = getAccessFlags accessMask
-                                    let entry = $"{matchKnownSids sid}--{flags}"
-                                    loop (entry :: acc) (i + 1) nextOffset
-                    loop [] 0 aclStart
-        
-        parseSd bytes
-
 
     let internal handleNtSecurityDescriptor (map: Map<string,ADDataTypes list>) =
         match map.ContainsKey "ntsecuritydescriptor" with
@@ -104,7 +57,7 @@ module LDAPDataHandlers =
             let map = map.Remove "ntsecuritydescriptor"
             match ntBytes with
             | [ADBytes b] ->                
-                decodeNtSecurityDescriptors b
+                SecurityDescriptor.decodeNtSecurityDescriptor b
                 |> List.map (fun s -> s.Trim() |> ADString)
                 |> fun strings -> map.Add ("ntsecuritydescriptor", strings)                
             | _ -> map

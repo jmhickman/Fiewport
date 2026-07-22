@@ -6,9 +6,13 @@ module Types =
     [<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Fiewport.Tests")>]
     do ()
     
-    open System.DirectoryServices.Protocols
-    
     open MessagePack
+
+    /// <summary>Search scope for LDAP queries.</summary>
+    type SearchScope =
+        | Base
+        | OneLevel
+        | Subtree
 
     ///
     /// <summary>Representation of unboxed data from an LDAP query.</summary>

@@ -27,7 +27,7 @@ module PrettyPrinter =
             
             match msg.ldapSearcherError with
             | None ->
-                data |> List.map(fun d -> tree (V "\n[+] Result attributes") (printFormatter d) |> toOutputPayload)
+                data |> List.map(fun d -> let t = tree (V "\n[+] Result attributes") (printFormatter d) in t.Expanded <- true; t |> toOutputPayload)
                 |> Many
                 |> toConsole
             | Some err ->

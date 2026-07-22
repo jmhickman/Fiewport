@@ -1,15 +1,14 @@
 ﻿namespace Fiewport
 
 module Searcher =
-    open System.DirectoryServices.Protocols
     open Types
     open LDAPUtils
 
 
     let private doSearch config =
-        let connection, searcher = readyLDAPSearch config
+        let conn = readyLDAPSearch config
         try
-            connection.SendRequest searcher :?> SearchResponse |> Ok
+            doLDAPSearch conn config |> Ok
         with
             exn -> exn.Message |> Error
 
@@ -246,7 +245,7 @@ module Searcher =
 
     ///
     /// <summary>
-    /// Connects to an AD and attempts to retrieve all hosts with the TRUSTED_FOR_DELEGATION userAccountControl
+    /// Connects to an AD and attempts to retrieve all hosts with the TRUSTED_FOR_DELEGATION UserAccountControl
     /// flag set using the filter
     /// <code>(useraccountcontrol:1.2.840.113556.1.4.803:=524288)</code>
     /// User-supplied filter is ignored for this search.
@@ -353,7 +352,7 @@ module Searcher =
 
     ///
     /// <summary>
-    /// Connects to an AD and attempts to retrieve the Protected Users group if it contains any members
+    /// Connects to retrieve the Protected Users group if it contains any members
     /// using the filter
     /// <code>(&amp;(samaccountname=Protect*)(member=*))</code>
     /// User-supplied filter is ignored for this search.
@@ -369,7 +368,7 @@ module Searcher =
 
     ///
     /// <summary>
-    /// Connects to an AD and attempts to retrieve groups whose members are in the Builtin Administrators group
+    /// Connects to retrieve groups whose members are in the Builtin Administrators group
     /// using the filter
     /// <code>(&amp;(objectCategory=group)(memberOf=CN=Administrators,CN=Builtin,&lt;DC&gt;</code>
     /// User-supplied filter is ignored for this search.

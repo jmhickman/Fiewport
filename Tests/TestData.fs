@@ -1,7 +1,7 @@
 namespace Fiewport.Tests
 
 module TestData =
-    open System.DirectoryServices.Protocols
+
     open Fiewport.Types
 
     let defaultConfig : SearcherConfig =

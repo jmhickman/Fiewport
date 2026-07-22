@@ -44,8 +44,10 @@ module Types =
           [<Key(2)>]ldapDN: string
           [<Key(3)>]scope: SearchScope
           [<Key(4)>]ldapHost: string
-          [<Key(5)>]username: string
-          [<Key(6)>]password: string }
+          [<Key(5)>]ldapPort: int
+          [<Key(6)>]useSsl: bool
+          [<Key(7)>]username: string
+          [<Key(8)>]password: string }
         
     ///
     /// <summary>Defines the batteries-included searches</summary> 

@@ -9,28 +9,40 @@ module LDAPDataHandlers =
     open LDAPConstants
 
 
+    /// Decode an LDAP SID byte array into its human-readable string form (e.g. "S-1-5-21-...").
+    ///
+    /// Per Microsoft's SID binary layout (MS-DTYP §2.4):
+    ///   Offset  Size  Field
+    ///   0       1     Revision (typically 1)
+    ///   1       1     SubAuthority count
+    ///   2       6     Identifier Authority (big-endian, little-endian byte at offset 7 is masked)
+    ///   8       4×N   SubAuthorities (each a little-endian DWORD)
+    ///
+    /// The string representation is: S-Revision-IdentifierAuthority-SubAuthority1-SubAuthority2-...
+    ///
+    /// Identifier Authority is assembled from its 6 big-endian bytes into a single integer;
+    /// the low byte (offset 7) is masked with 0xFF to avoid sign-extension from int32 promotion.
+    /// SubAuthorities are read as little-endian uint32 values starting at offset 8.
     let internal decodeSidFromBytes (bytes: byte[]) =
-        // SID binary format: Revision(1) + SubAuthorityCount(1) + IdentifierAuthority(6) + N*SubAuthority(4)
-        // IdentifierAuthority is 6 bytes in big-endian order (e.g. 00 00 00 00 00 05 = authority 5)
-        if Array.length bytes < 8 then
+        match Array.length bytes with
+        | len when len < 8 ->
             "INVALID SID"
-        else
+        | _ ->
             let revision = int bytes[0]
             let subAuthCount = int bytes[1]
-            // Read 6-byte authority as big-endian; top 2 bytes are typically zero for standard SIDs
             let authority =
                 (int bytes[2] <<< 32) ||| (int bytes[3] <<< 24) ||| (int bytes[4] <<< 16) ||| (int bytes[5] <<< 8) ||| int bytes[6] ||| (int bytes[7] &&& 0xFF)
                 |> int64
-                |> int32 // truncate to int32 — sufficient for all standard SIDs
-            
+                |> int32
+
             let subAuthorities =
                 [for i in 0 .. subAuthCount - 1 do
                     let offset = 8 + (i * 4)
                     if offset + 4 <= Array.length bytes then
                         yield sprintf "%u" (BitConverter.ToUInt32(bytes, offset))]
-            
+
             let subAuthStr = String.concat "-" subAuthorities
-            sprintf "S-%d-%d-%s" revision authority subAuthStr
+            $"S-{revision}-{authority}-{subAuthStr}"
 
     let internal decodeNtSecurityDescriptors bytes =
         let matchKnownSids sid =

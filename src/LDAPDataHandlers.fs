@@ -45,7 +45,7 @@ module LDAPDataHandlers =
                 [for i in 0 .. subAuthCount - 1 do
                     let offset = 8 + (i * 4)
                     if offset + 4 <= Array.length bytes then
-                        yield sprintf "%u" (BitConverter.ToUInt32(bytes, offset))]
+                        yield $"{BitConverter.ToUInt32(bytes, offset):U}"]
 
             $"""S-{revision}-{authority}-{String.concat "-" subAuthorities}"""
 

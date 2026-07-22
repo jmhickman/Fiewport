@@ -23,7 +23,7 @@ module PrettyPrinter =
             
             if msg.searchType.ToString () <> lastSearch then
                 lastSearch <- msg.searchType.ToString ()
-                MCD (Color.PaleGreen3, [Decoration.Underline], $"=======Search: {msg.searchType}=======") |> toConsole
+                MCD (Color.PaleGreen3, [Decoration.Underline], $"======= Search: {msg.searchType} =======") |> toConsole
             
             match msg.ldapSearcherError with
             | None ->

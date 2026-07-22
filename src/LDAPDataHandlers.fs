@@ -4,12 +4,33 @@ module LDAPDataHandlers =
     open System
     open System.Text
     open System.Net
-    open System.Security.AccessControl
-    open System.Security.Principal
     open System.Security.Cryptography.X509Certificates
     open Types
     open LDAPConstants
 
+
+    let internal decodeSidFromBytes (bytes: byte[]) =
+        // SID binary format: Revision(1) + SubAuthorityCount(1) + IdentifierAuthority(6) + N*SubAuthority(4)
+        // IdentifierAuthority is 6 bytes in big-endian order (e.g. 00 00 00 00 00 05 = authority 5)
+        if Array.length bytes < 8 then
+            "INVALID SID"
+        else
+            let revision = int bytes[0]
+            let subAuthCount = int bytes[1]
+            // Read 6-byte authority as big-endian; top 2 bytes are typically zero for standard SIDs
+            let authority =
+                (int bytes[2] <<< 32) ||| (int bytes[3] <<< 24) ||| (int bytes[4] <<< 16) ||| (int bytes[5] <<< 8) ||| int bytes[6] ||| (int bytes[7] &&& 0xFF)
+                |> int64
+                |> int32 // truncate to int32 — sufficient for all standard SIDs
+            
+            let subAuthorities =
+                [for i in 0 .. subAuthCount - 1 do
+                    let offset = 8 + (i * 4)
+                    if offset + 4 <= Array.length bytes then
+                        yield sprintf "%u" (BitConverter.ToUInt32(bytes, offset))]
+            
+            let subAuthStr = String.concat "-" subAuthorities
+            sprintf "S-%d-%d-%s" revision authority subAuthStr
 
     let internal decodeNtSecurityDescriptors bytes =
         let matchKnownSids sid =
@@ -22,16 +43,42 @@ module LDAPDataHandlers =
             |> List.filter (fun enum -> (accessMask &&& int enum) = int enum)
             |> List.map (fun enum -> enum.ToString())
             |> String.concat ", "
-            
-        let descriptor = CommonSecurityDescriptor(false, false, bytes, 0) // need to check into these flags to make sure I'm not reading these incorrectly
-        [for dacl in descriptor.DiscretionaryAcl do yield dacl]
-        |> List.map (fun dacl ->
-            match dacl with
-            | :? CommonAce as common ->
-                let flags = getAccessFlags common.AccessMask
-                $"{matchKnownSids common.SecurityIdentifier.Value}--{flags}"
-            | _ -> "")
-        |> List.filter (fun p -> p <> "")
+        
+        // Cross-platform security descriptor + ACL parser
+        // SD header: Revision(1) + Byte2(1) + Control(2) + Owner(4) + Group(4) + SACL(4) + DACL(4) = 20 bytes
+        let parseSd (bytes: byte[]) =
+            if Array.length bytes < 20 then []
+            else
+                // Get DACL offset from security descriptor header (offset 16-19)
+                let daclOffset = BitConverter.ToInt32(bytes, 16)
+                if daclOffset = 0 || daclOffset + 8 > Array.length bytes then []
+                else
+                    // ACL header: AclRevision(1) + Unused(1) + Size(2) + AceCount(2) + Unused(2) = 8 bytes
+                    let aceCount = int (BitConverter.ToUInt16(bytes, daclOffset + 4))
+                    let aclStart = daclOffset + 8
+                    let rec loop acc i curOffset =
+                        if i >= aceCount || curOffset + 8 > Array.length bytes then acc
+                        else
+                            let aceType = bytes[curOffset]
+                            let aceSize = int (BitConverter.ToUInt16(bytes, curOffset + 2))
+                            if aceSize < 8 then
+                                loop acc (i + 1) (curOffset + 4)
+                            else
+                                let sidOffset = curOffset + 8
+                                let sidSize = aceSize - 8
+                                let nextOffset = curOffset + (aceSize &&& ~~~3) // round up to 4-byte boundary
+                                if sidOffset + sidSize > Array.length bytes then
+                                    loop acc (i + 1) nextOffset
+                                else
+                                    let sidBytes = Array.sub bytes sidOffset sidSize
+                                    let sid = decodeSidFromBytes sidBytes
+                                    let accessMask = BitConverter.ToInt32(bytes, curOffset + 4)
+                                    let flags = getAccessFlags accessMask
+                                    let entry = $"{matchKnownSids sid}--{flags}"
+                                    loop (entry :: acc) (i + 1) nextOffset
+                    loop [] 0 aclStart
+        
+        parseSd bytes
 
 
     let internal handleNtSecurityDescriptor (map: Map<string,ADDataTypes list>) =
@@ -122,7 +169,7 @@ module LDAPDataHandlers =
             let map = map.Remove "objectsid"
             match sidBytes with
             | [ADBytes b] ->
-                [SecurityIdentifier(b, 0) |> _.Value |> fun s -> s.Trim() |> ADString]
+                [decodeSidFromBytes b |> ADString]
                 |> fun strings -> map.Add("objectsid", strings)
             | _ -> map
         | false -> map
@@ -135,27 +182,32 @@ module LDAPDataHandlers =
             let map = map.Remove "securityidentifier"
             match sidBytes with
             | [ADBytes b] ->
-                [SecurityIdentifier(b, 0) |> _.Value |> fun s -> s.Trim() |> ADString]
+                [decodeSidFromBytes b |> ADString]
                 |> fun strings -> map.Add("securityidentifier", strings)
             | _ -> map
         | false -> map
 
     
     let internal handleUserCertificate (map: Map<string, ADDataTypes list>) =
+        let dash = '-'
+        let stripDashes (s: string) = String.filter (fun c -> c <> dash) s
+        
         match map.ContainsKey "usercertificate" with
         | true ->
             let certBytes = map["usercertificate"]
             let map = map.Remove "usercertificate"
-            match certBytes with
-            | [ADBytes b] ->
-                let cert = X509CertificateLoader.LoadCertificate b
-                let stringify =
-                    [$"Issuer: {cert.Issuer}".Trim () |> ADString] @
-                    [$"Subject: {cert.Subject}".Trim () |> ADString] @
-                    [$"PubKey: 0x{cert.GetPublicKey () |> BitConverter.ToString |> String.filter(fun p -> p <> '-')}".Trim () |> ADString]
-                cert.Dispose ()
-                stringify |> fun strings -> map.Add("usercertificate", strings)
-            | _ -> map
+            let decodeCert (b: byte[]) =
+                try
+                    let cert = X509CertificateLoader.LoadCertificate b
+                    let issuer = sprintf "Issuer: %s" cert.Issuer
+                    let subject = sprintf "Subject: %s" cert.Subject
+                    let pubKey = sprintf "PubKey: 0x%s" (cert.GetPublicKey() |> BitConverter.ToString |> stripDashes)
+                    cert.Dispose()
+                    [ADString issuer; ADString subject; ADString pubKey]
+                with _ -> []
+            let strings = certBytes |> List.collect (function ADBytes b -> decodeCert b | _ -> [])
+            if List.isEmpty strings then map
+            else map.Add("usercertificate", strings)
         | false -> map
 
         
@@ -169,6 +221,30 @@ module LDAPDataHandlers =
             let map = map.Remove "dsasignature"
             map.Add("dsasignature", [h])
         | false -> map
+
+
+    let internal handleBigEndianIntegers (map: Map<string, ADDataTypes list>) =
+        let decodeBigEndianInt64 (b: byte[]) =
+            if Array.length b = 8 then
+                Int64.Parse(BitConverter.ToString(b).Replace("-", ""), System.Globalization.NumberStyles.HexNumber) |> string |> ADString
+            elif Array.length b = 4 then
+                BitConverter.ToUInt32(b, 0) |> string |> ADString
+            else
+                BitConverter.ToString(b).Replace("-", "") |> ADString
+        
+        let keysToHandle = [ "msds-generationid"; "hidesqlinkedvalue"; "mssql-replicationid" ]
+        let rec loop (map: Map<string, ADDataTypes list>) (keys: string list) =
+            match keys with
+            | [] -> map
+            | key :: rest ->
+                match map.ContainsKey key with
+                | false -> loop map rest
+                | true ->
+                    let values = map[key]
+                    let map = map.Remove key
+                    let decoded = values |> List.collect (function ADBytes b -> [decodeBigEndianInt64 b] | ADString s -> [ADString s])
+                    loop (map.Add(key, decoded)) rest
+        loop map keysToHandle
 
 
     let internal handleGenericStrings (map: Map<string, ADDataTypes list>) =
@@ -288,9 +364,13 @@ module LDAPDataHandlers =
     let handleSamAccountType (map: Map<string, string list>) =
          match map.ContainsKey "samaccounttype" with
          | true ->
-             let value = map["samaccounttype"] |> List.head
+             let value = map["samaccounttype"] |> List.head |> int
              let map = map.Remove "samaccounttype"
-             map.Add("samaccounttype", sAMAccountTypesList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+             // SAMAccountType values are not pure bitmasks — find the most specific match
+             let matches = sAMAccountTypesList |> List.filter (fun p -> (value &&& int p) = int p)
+             // Prefer the most specific (highest value that matches)
+             let result = if List.length matches > 1 then [List.max matches] else matches
+             map.Add("samaccounttype", result |> List.map _.ToString())
          | false -> map
 
 

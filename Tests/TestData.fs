@@ -10,6 +10,8 @@ module TestData =
           ldapDN = "DC=test,DC=local"
           scope = SearchScope.Subtree
           ldapHost = "192.168.56.10"
+          ldapPort = 389
+          useSsl = false
           username = "testuser"
           password = "P@ssw0rd" }
 

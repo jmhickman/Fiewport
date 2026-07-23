@@ -18,7 +18,7 @@ module SecurityDescriptor =
     /// Identifier Authority is assembled from its 6 big-endian bytes into a single integer;
     /// the low byte (offset 7) is masked with 0xFF to avoid sign-extension from int32 promotion.
     /// SubAuthorities are read as little-endian uint32 values starting at offset 8.
-    let private decodeSidFromBytes (bytes: byte[]) =
+    let internal decodeSidFromBytes (bytes: byte[]) =
         match Array.length bytes with
         | len when len < 8 ->
             "INVALID SID"
@@ -26,13 +26,12 @@ module SecurityDescriptor =
             let revision = int bytes[0]
             let subAuthCount = int bytes[1]
             let authority =
-                int bytes[2] <<< 32 |||
-                (int bytes[3] <<< 24) |||
-                (int bytes[4] <<< 16) |||
-                (int bytes[5] <<< 8) |||
-                int bytes[6] |||
-                (int bytes[7] &&& 0xFF)
-                |> int64
+                int64 bytes[2] <<< 32 |||
+                int64 bytes[3] <<< 24 |||
+                int64 bytes[4] <<< 16 |||
+                int64 bytes[5] <<< 8 |||
+                int64 bytes[6] |||
+                int64 bytes[7] &&& 0xFFL
                 |> int32
 
             let subAuthorities =

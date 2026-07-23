@@ -8,47 +8,6 @@ module LDAPDataHandlers =
     open Types
     open LDAPConstants
 
-    ///
-    /// Decode an LDAP SID byte array into its human-readable string form (e.g. "S-1-5-21-...").
-    ///
-    /// Per Microsoft's SID binary layout (MS-DTYP §2.4):
-    ///   Offset  Size  Field
-    ///   0       1     Revision (typically 1)
-    ///   1       1     SubAuthority count
-    ///   2       6     Identifier Authority (big-endian, little-endian byte at offset 7 is masked)
-    ///   8       4×N   SubAuthorities (each a little-endian DWORD)
-    ///
-    /// The string representation is: S-Revision-IdentifierAuthority-SubAuthority1-SubAuthority2-...
-    ///
-    /// Identifier Authority is assembled from its 6 big-endian bytes into a single integer;
-    /// the low byte (offset 7) is masked with 0xFF to avoid sign-extension from int32 promotion.
-    /// SubAuthorities are read as little-endian uint32 values starting at offset 8.
-    /// 
-    let internal decodeSidFromBytes (bytes: byte[]) =
-        match Array.length bytes with
-        | len when len < 8 ->
-            "INVALID SID"
-        | _ ->
-            let revision = int bytes[0]
-            let subAuthCount = int bytes[1]
-            let authority =
-                int bytes[2] <<< 32 ||| 
-                (int bytes[3] <<< 24) ||| 
-                (int bytes[4] <<< 16) ||| 
-                (int bytes[5] <<< 8) ||| 
-                int bytes[6] ||| 
-                (int bytes[7] &&& 0xFF)
-                |> int64
-                |> int32
-
-            let subAuthorities =
-                [for i in 0 .. subAuthCount - 1 do
-                    let offset = 8 + (i * 4)
-                    if offset + 4 <= Array.length bytes then
-                        yield $"{BitConverter.ToUInt32(bytes, offset):U}"]
-
-            $"""S-{revision}-{authority}-{String.concat "-" subAuthorities}"""
-
 
     let internal handleNtSecurityDescriptor (map: Map<string,ADDataTypes list>) =
         match map.ContainsKey "ntsecuritydescriptor" with
@@ -138,7 +97,7 @@ module LDAPDataHandlers =
             let map = map.Remove "objectsid"
             match sidBytes with
             | [ADBytes b] ->
-                [decodeSidFromBytes b |> ADString]
+                [SecurityDescriptor.decodeSidFromBytes b |> ADString]
                 |> fun strings -> map.Add("objectsid", strings)
             | _ -> map
         | false -> map
@@ -151,7 +110,7 @@ module LDAPDataHandlers =
             let map = map.Remove "securityidentifier"
             match sidBytes with
             | [ADBytes b] ->
-                [decodeSidFromBytes b |> ADString]
+                [SecurityDescriptor.decodeSidFromBytes b |> ADString]
                 |> fun strings -> map.Add("securityidentifier", strings)
             | _ -> map
         | false -> map

@@ -17,7 +17,7 @@ module LDAPDataHandlers =
             match ntBytes with
             | [ADBytes b] ->                
                 SecurityDescriptor.decodeNtSecurityDescriptor b
-                |> List.map (fun s -> s.Trim() |> ADString)
+                |> List.map (fun s -> s.Trim () |> ADString)
                 |> fun strings -> map.Add ("ntsecuritydescriptor", strings)                
             | _ -> map
         | false -> map
@@ -117,8 +117,7 @@ module LDAPDataHandlers =
 
     
     let internal handleUserCertificate (map: Map<string, ADDataTypes list>) =
-        let dash = '-'
-        let stripDashes (s: string) = String.filter (fun c -> c <> dash) s
+        let stripDashes (s: string) = String.filter (fun c -> c <> '-') s
         
         match map.ContainsKey "usercertificate" with
         | true ->
@@ -129,8 +128,8 @@ module LDAPDataHandlers =
                     let cert = X509CertificateLoader.LoadCertificate b
                     let issuer = sprintf "Issuer: %s" cert.Issuer
                     let subject = sprintf "Subject: %s" cert.Subject
-                    let pubKey = sprintf "PubKey: 0x%s" (cert.GetPublicKey() |> BitConverter.ToString |> stripDashes)
-                    cert.Dispose()
+                    let pubKey = sprintf "PubKey: 0x%s" (cert.GetPublicKey () |> BitConverter.ToString |> stripDashes)
+                    cert.Dispose ()
                     [ADString issuer; ADString subject; ADString pubKey]
                 with _ -> []
             let strings = certBytes |> List.collect (function ADBytes b -> decodeCert b | _ -> [])
@@ -160,7 +159,7 @@ module LDAPDataHandlers =
             else
                 BitConverter.ToString(b).Replace("-", "") |> ADString
         
-        let keysToHandle = [ "msds-generationid"; "hidesqlinkedvalue"; "mssql-replicationid" ]
+        let keysToHandle = ["msds-generationid"; "hidesqlinkedvalue"; "mssql-replicationid"]
         let rec loop (map: Map<string, ADDataTypes list>) (keys: string list) =
             match keys with
             | [] -> map
@@ -183,7 +182,7 @@ module LDAPDataHandlers =
                 | ADString s -> $"{s}"
                 | ADBytes b -> $"{Encoding.UTF8.GetString(b)}".Trim ())
         let keys = [for key in map.Keys do yield key]
-        let pairs = [for key in keys do yield (key, (decomposeList map[key]))]
+        let pairs = [for key in keys do yield key, decomposeList map[key]]
         pairs |> List.fold(fun acc (key, value) -> acc |> Map.add key value ) Map.empty<string,string list>
 
 
@@ -374,5 +373,3 @@ module LDAPDataHandlers =
              let map = map.Remove "trusttype"
              map.Add("trusttype", trustTypeList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
          | false -> map
-
-    // domain trust types:  trustposixoffset

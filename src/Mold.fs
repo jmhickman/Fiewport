@@ -69,3 +69,24 @@ module Mold =
                 maps
                 |> List.collect(fun map ->
                     [for key in map.Keys do yield key,map[key]]))
+
+
+    ///
+    /// <summary>
+    /// <para><c>Mold.extractOccurances</c> allows the user to directly extract a specific key and
+    ///  value pair, for all occurances of that key in the dataset.</para>
+    /// <para>Example:</para>
+    /// <code>[config]
+    /// |> Searcher.getUsers
+    /// |> Mold.extractOccurances "ou"
+    /// |> someCustomFunction
+    /// |> ignore</code>
+    /// </summary>
+    ///
+    let extractOccurances key results =
+        results
+        |> List.collect (fun result ->
+            result.ldapData
+            |> List.collect (fun map ->
+                Map.tryFind key map
+                |> Option.defaultValue []))

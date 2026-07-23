@@ -7,5 +7,6 @@ Fiewport.sln.DotSettings.user
 Fiewport_steps.md
 WorkingScript.fsx
 WorkingIdeas.txt
+*.bin
 .vscode/
 .fake

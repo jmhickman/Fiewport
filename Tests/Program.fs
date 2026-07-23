@@ -4,6 +4,7 @@ module Program =
 
     open Expecto
 
+    [<Tests>]
     let allTests =
         testList "Fiewport" [
             FilterTests.filterTests

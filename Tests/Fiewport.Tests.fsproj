@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <OutputType>Exe</OutputType>
+        <GenerateProgramFile>false</GenerateProgramFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,6 +20,8 @@
         <ProjectReference Include="../Fiewport.fsproj" />
         <PackageReference Include="Expecto" Version="11.1.0" />
         <PackageReference Include="FsCheck" Version="3.3.3" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.16.0" />
     </ItemGroup>
 
 </Project>

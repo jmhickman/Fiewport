@@ -24,7 +24,13 @@ module PrettyPrinter =
             if msg.searchType.ToString () <> lastSearch then
                 lastSearch <- msg.searchType.ToString ()
                 MCD (Color.PaleGreen3, [Decoration.Underline], $"======= Search: {msg.searchType} =======") |> toConsole
-            
+
+            if List.isEmpty msg.ldapReferrals then ()
+            else
+                let refNodes = msg.ldapReferrals |> List.map (fun r -> node ([MC (Color.Yellow1, r)] |> Many) [])
+                tree (V "[!] Referrals encountered") refNodes |> fun t -> t.Expanded <- true; t |> toOutputPayload
+                |> ignore
+
             match msg.ldapSearcherError with
             | None ->
                 data |> List.map(fun d -> let t = tree (V "\n[+] Result attributes") (printFormatter d) in t.Expanded <- true; t |> toOutputPayload)
@@ -32,7 +38,7 @@ module PrettyPrinter =
                 |> toConsole
             | Some err ->
                 [ MC (Color.PaleGreen3, $"[-]Search config: {msg.searchConfig.ldapHost} == {msg.searchConfig.username} == {msg.searchConfig.ldapDN}"); NL
-                  MC (Color.Red, err ) ]
+                  MC (Color.Red, $"[{err.context}] {err.message}") ]
                 |> Many
                 |> toConsole
             channel.Reply ()

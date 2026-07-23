@@ -44,73 +44,71 @@ module SecurityDescriptor =
             | [] -> $"""S-{revision}-{authority}"""
             | _ -> $"""S-{revision}-{authority}-{String.concat "-" subAuthorities}"""
 
-    /// Compute the next ACE offset, advancing minimally (4 bytes) for malformed ACEs,
-    /// or rounding up to a 4-byte boundary for valid ones.
-    let private getNextAceOffset curOffset aceSize =
-        match aceSize with
-        | size when size < 8 -> curOffset + 4
-        | size -> curOffset + (size &&& ~~~3)
+    // ── Pipeline stages ──────────────────────────────────────────────
+    // Each stage: SecurityDescriptorContext -> SecurityDescriptorContext
+    // The `valid` flag short-circuits downstream work on failure.
 
-    /// Determine whether an ACE type is an Object ACE (has GUID fields).
-    let private isObjectAce aceType =
-        aceType = accessAllowedObjectAce || aceType = accessDeniedObjectAce
+    /// Seed the context from raw bytes.
+    let private init bytes =
+        { bytes = bytes; valid = true; daclOffset = 0; aceCount = 0; aclStart = 0; permissions = [] }
 
-    /// Compute the SID offset for a standard ACE (type 0x00 or 0x01).
-    let private standardAceSidOffset curOffset = curOffset + 8
+    /// Verify the SD is long enough to hold its 20-byte header.
+    let private validateSdHeader ctx =
+        { ctx with valid = Array.length ctx.bytes >= 20 }
 
-    /// Compute the SID offset for an Object ACE (type 0x05 or 0x06).
-    /// Returns None if the Flags DWORD is out of bounds.
-    let private objectAceSidOffset bytes curOffset =
-        let flagsOffset = curOffset + 8
-        let objFlags = BitConverter.ToInt32(bytes, flagsOffset)
-        let addGuid flag acc = if objFlags &&& flag <> 0 then acc + 16 else acc
+    /// Read the DACL pointer from the SD header (DWORD at offset 16).
+    let private extractDaclOffset ctx =
+        let daclOffset = if ctx.valid then BitConverter.ToInt32(ctx.bytes, 16) else 0
+        { ctx with daclOffset = daclOffset }
 
-        match flagsOffset + 4 > Array.length bytes with
-        | true -> None
-        | false ->            
-            let baseOffset = flagsOffset + 4            
-            addGuid aceObjectTypePresent (addGuid aceInheritedObjectTypePresent baseOffset) |> Some
+    /// Ensure the DACL pointer is valid (non-null, room for ACL header).
+    let private validateDaclOffset ctx =
+        let offsetValid = ctx.daclOffset <> 0 && ctx.daclOffset + 8 <= Array.length ctx.bytes
+        { ctx with valid = ctx.valid && offsetValid }
 
-    /// Compute the SID offset within an ACE, accounting for Object ACE GUIDs.
-    /// Returns None for malformed Object ACEs.
-    let private computeSidOffset (bytes: byte array) curOffset =
-        let aceType = bytes[curOffset]
-        match isObjectAce aceType with
-        | true -> objectAceSidOffset bytes curOffset
-        | false -> standardAceSidOffset curOffset |> Some 
+    /// Pull ACE count and compute where ACE data begins.
+    let private extractAclInfo ctx =
+        let aceCount = if ctx.valid then int (BitConverter.ToUInt16(ctx.bytes, ctx.daclOffset + 4)) else 0
+        let aclStart = if ctx.valid then ctx.daclOffset + 8 else 0
+        { ctx with aceCount = aceCount; aclStart = aclStart }
 
-    /// Validate that a parsed SID offset and size are within bounds.
-    let private validateAce (bytes: byte array) sidOffset sidSize =
-        match sidSize < 8 with
-        | true -> false
-        | false -> sidOffset + sidSize <= Array.length bytes
-
-    /// Decode a valid ACE into (sid, accessMask).
-    let private decodeAce bytes sidOffset sidSize curOffset =
-        let sidBytes = Array.sub bytes sidOffset sidSize
-        let sid = decodeSidFromBytes sidBytes
-        let accessMask = BitConverter.ToInt32(bytes, curOffset + 4)
-        sid, accessMask
-
-    /// Attempt to extract a SID and access mask from a valid ACE.
-    /// Returns None for malformed ACEs (size < 8) or out-of-bounds SID data.
-    let private tryParseAceEntry (bytes: byte array) curOffset aceSize =
+    /// Recursively walk ACE entries in an ACL, collecting decoded permission strings.
+    let private parseAceEntry (bytes: byte array) curOffset aceSize =
+        let addGuid flag objFlags acc = if objFlags &&& flag <> 0 then acc + 16 else acc
+        
+        let sidOffsetExists isObjectAce =
+            match isObjectAce with
+            | true ->
+                let flagsOffset = curOffset + 8
+                match flagsOffset + 4 > Array.length bytes with
+                | true -> None
+                | false ->
+                    let objFlags = BitConverter.ToInt32(bytes, flagsOffset)                    
+                    addGuid aceObjectTypePresent objFlags (addGuid aceInheritedObjectTypePresent objFlags (flagsOffset + 4)) |> Some
+            | false -> curOffset + 8 |> Some
+        
+        // Skip malformed ACEs (size < 8)
         match aceSize < 8 with
         | true -> None
         | false ->
-            match computeSidOffset bytes curOffset with
+        // Compute SID offset, accounting for Object ACE GUIDs
+            let aceType = bytes[curOffset]
+            let isObjectAce = aceType = accessAllowedObjectAce || aceType = accessDeniedObjectAce
+            let sidOffset = sidOffsetExists isObjectAce                
+
+            match sidOffset with
             | None -> None
             | Some sidOffset ->
-                let headerSize = sidOffset - curOffset
-                let sidSize = aceSize - headerSize
-                match validateAce bytes sidOffset sidSize with
-                | false -> None
-                | true ->
-                    let sid, accessMask = decodeAce bytes sidOffset sidSize curOffset
-                    (sid, accessMask) |> Some 
+                let sidSize = aceSize - (sidOffset - curOffset)
+                // Validate SID bounds
+                match sidSize < 8 || sidOffset + sidSize > Array.length bytes with
+                | true -> None 
+                | false ->
+                    (decodeSidFromBytes (Array.sub bytes sidOffset sidSize), BitConverter.ToInt32(bytes, curOffset + 4)) |> Some
 
-    /// Match a decoded SID string against well-known and network SIDs, returning a
-    /// human-readable name when available or the raw SID as a fallback.
+    let private getNextAceOffset curOffset aceSize =
+        if aceSize < 8 then curOffset + 4 else curOffset + (aceSize &&& ~~~3)
+
     let private matchKnownSids sid =
         match wellKnownSids.ContainsKey sid with
         | true -> wellKnownSids[sid]
@@ -120,44 +118,47 @@ module SecurityDescriptor =
             | true -> networkSids[lastSubAuth]
             | false -> sid
 
-    /// Filter the AD rights enumeration by bitmask, returning matching flag names joined by ", ".
     let private getAccessFlags accessMask =
         activeDirectoryRightsList
         |> List.filter (fun e -> accessMask &&& int e = int e)
         |> List.map (fun e -> e.ToString())
         |> String.concat ", "
 
-    /// Recursively walk ACE entries in an ACL, collecting decoded permission strings.
-    let private parseAclEntries bytes aceCount aclStart =
+    /// Walk all ACEs and populate the permissions list.
+    let private parseAclEntries ctx =
+        if not ctx.valid then { ctx with permissions = [] } else
         let rec loop acc i curOffset =
-            match i >= aceCount || curOffset + 8 > Array.length bytes with
+            match i >= ctx.aceCount || curOffset + 8 > Array.length ctx.bytes with
             | true -> acc
             | false ->
-                let aceSize = int (BitConverter.ToUInt16(bytes, curOffset + 2))
+                let aceSize = int (BitConverter.ToUInt16(ctx.bytes, curOffset + 2))
                 let nextOffset = getNextAceOffset curOffset aceSize
-                match tryParseAceEntry bytes curOffset aceSize with
+                match parseAceEntry ctx.bytes curOffset aceSize with
                 | None -> loop acc (i + 1) nextOffset
-                | Some (sid, accessMask) ->
-                    let flags = getAccessFlags accessMask
-                    let entry = $"{matchKnownSids sid}--{flags}"
+                | Some (sid, accessMask) ->                    
+                    let entry = $"{matchKnownSids sid}--{getAccessFlags accessMask}"
                     loop (entry :: acc) (i + 1) nextOffset
-        loop [] 0 aclStart
+        { ctx with permissions = loop [] 0 ctx.aclStart }
+
+    /// Extract the final permissions list, returning [] if pipeline failed.
+    let private finalize ctx =
+        if ctx.valid then ctx.permissions else []
 
     /// Decode an NT Security Descriptor byte array into a list of human-readable
     /// permission strings in the form "Principal--Flags".
     ///
     /// Cross-platform security descriptor + ACL parser.
     /// SD header: Revision(1) + Byte2(1) + Control(2) + Owner(4) + Group(4) + SACL(4) + DACL(4) = 20 bytes
+    /// ACL header: AclRevision(1) + Unused(1) + Size(2) + AceCount(2) + Unused(2) = 8 bytes
+    ///
+    /// Pipeline: init → validateSdHeader → extractDaclOffset → validateDaclOffset →
+    ///           extractAclInfo → parseAclEntries → finalize
     let internal decodeNtSecurityDescriptor bytes =
-        match Array.length bytes with
-        | len when len < 20 -> []
-        | _ ->
-            // Get DACL offset from security descriptor header (offset 16-19)
-            let daclOffset = BitConverter.ToInt32(bytes, 16)
-            match daclOffset = 0 || daclOffset + 8 > Array.length bytes with
-            | true -> []
-            | false ->
-                // ACL header: AclRevision(1) + Unused(1) + Size(2) + AceCount(2) + Unused(2) = 8 bytes
-                let aceCount = int (BitConverter.ToUInt16(bytes, daclOffset + 4))
-                let aclStart = daclOffset + 8
-                parseAclEntries bytes aceCount aclStart
+        bytes
+        |> init
+        |> validateSdHeader
+        |> extractDaclOffset
+        |> validateDaclOffset
+        |> extractAclInfo
+        |> parseAclEntries
+        |> finalize

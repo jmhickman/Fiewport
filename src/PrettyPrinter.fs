@@ -25,17 +25,22 @@ module PrettyPrinter =
                 lastSearch <- msg.searchType.ToString ()
                 MCD (Color.PaleGreen3, [Decoration.Underline], $"======= Search: {msg.searchType} =======") |> toConsole
 
-            if List.isEmpty msg.ldapReferrals then ()
-            else
+            match List.isEmpty msg.ldapReferrals with 
+            | true -> ()
+            | false ->            
                 let refNodes = msg.ldapReferrals |> List.map (fun r -> node ([MC (Color.Yellow1, r)] |> Many) [])
                 tree (V "[!] Referrals encountered") refNodes |> fun t -> t.Expanded <- true; t |> toOutputPayload
                 |> ignore
 
             match msg.ldapSearcherError with
             | None ->
-                data |> List.map(fun d -> let t = tree (V "\n[+] Result attributes") (printFormatter d) in t.Expanded <- true; t |> toOutputPayload)
-                |> Many
-                |> toConsole
+                match data.Length = 0 with
+                | true -> 
+                    MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
+                | false ->
+                    data |> List.map(fun d -> let t = tree (V "\n[+] Result attributes") (printFormatter d) in t.Expanded <- true; t |> toOutputPayload)
+                    |> Many
+                    |> toConsole
             | Some err ->
                 [ MC (Color.PaleGreen3, $"[-]Search config: {msg.searchConfig.ldapHost} == {msg.searchConfig.username} == {msg.searchConfig.ldapDN}"); NL
                   MC (Color.Red, $"[{err.context}] {err.message}") ]
@@ -65,10 +70,7 @@ module PrettyPrinter =
     /// </summary>
     /// 
     let print (results: LDAPSearchResult list) = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate 
-        match results with
-        | [] -> MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
-        | _ ->
-            results |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
+        results |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
 
 
     ///

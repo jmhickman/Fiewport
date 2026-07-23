@@ -91,3 +91,21 @@ module PrettyPrinter =
     let teeDelimiter delimiter (results: LDAPSearchResult list) =
         MC (Color.Blue, delimiter) |> toConsole
         results
+
+
+    ///
+    /// <summary>
+    /// Prints a flat string list as a labeled tree with a delimiter header. Useful for displaying
+    /// the output of <c>Mold.extractOccurances</c>.
+    /// <code>
+    /// [config]
+    /// |> Searcher.getUsers
+    /// |> Mold.extractOccurances "distinguishedname"
+    /// |> PrettyPrinter.listPrinter "Distinguished Names"
+    /// </code>
+    /// </summary>
+    let listPrinter label (inputList: string list) =
+        MCD (Color.PaleGreen3, [Decoration.Underline], $"======= {label} =======") |> toConsole
+        let nodes = inputList |> List.map (fun s -> node ([MC (Color.White, s)] |> Many) [])
+        tree (V $"[{inputList.Length}] {label}") nodes |> fun t -> t.Expanded <- true; t |> toOutputPayload
+        |> toConsole

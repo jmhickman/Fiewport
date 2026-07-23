@@ -79,6 +79,22 @@ module Types =
     
     
     ///
+    /// <summary>Represents a single LDAP entry as a map of attribute names to decoded string values.</summary>
+    ///
+    type LDAPEntryData = Map<string, string list>
+
+
+    ///
+    /// <summary>Represents an error from the LDAP infrastructure layer.</summary>
+    /// <param name="context">Where the error occurred: "bind", "search", or "iterate".</param>
+    ///
+    [<MessagePackObject>]
+    type LdapError =
+        { [<Key(0)>]message: string
+          [<Key(1)>]context: string }
+
+
+    ///
     /// <summary>
     /// Represents the result of an LDAP search. An AD has an arbitrary number of attributes, and all
     /// results are stored in the <c>Map</c>.
@@ -88,8 +104,9 @@ module Types =
     type LDAPSearchResult =
         { [<Key(0)>]searchType: LDAPSearchType 
           [<Key(1)>]searchConfig: SearcherConfig
-          [<Key(2)>]ldapSearcherError: string option
-          [<Key(3)>]ldapData: Map<string, string list> list }
+          [<Key(2)>]ldapSearcherError: LdapError option
+          [<Key(3)>]ldapData: LDAPEntryData list
+          [<Key(4)>]ldapReferrals: string list }
 
     
     ///

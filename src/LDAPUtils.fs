@@ -18,19 +18,22 @@ module LDAPUtils =
     let private waitTaskUnit (t: Task) = t.GetAwaiter().GetResult()
 
     let private gatherEntries (results: ILdapSearchResults) =
-        let rec loop acc = task {
+        let rec loop acc referrals = task {
             let! more = results.HasMoreAsync()
             if more then
                 try
                     let! entry = results.NextAsync()
-                    return! loop (entry :: acc)
+                    return! loop (entry :: acc) referrals
                 with
-                | :? LdapReferralException -> return List.rev acc
-                | ex -> return! failwithf "LDAP iteration error: %s" ex.Message
+                | :? LdapReferralException as ex ->
+                    let refs = ex.GetReferrals() |> List.ofArray
+                    return Ok (List.rev acc, refs)
+                | ex ->
+                    return Error { message = $"LDAP iteration error: {ex.Message}"; context = "iterate" }
             else
-                return List.rev acc
+            return Ok (List.rev acc, referrals)
         }
-        loop [] |> waitTask
+        loop [] [] |> waitTask
 
     let internal readyLDAPSearch config =
         let port = if config.ldapPort <> 0 then config.ldapPort else 389
@@ -38,7 +41,7 @@ module LDAPUtils =
             if config.useSsl then
                 let opts = new LdapConnectionOptions()
                 opts.UseSsl() |> ignore
-                opts.ConfigureRemoteCertificateValidationCallback((fun _ _ _ _ -> true)) |> ignore
+                opts.ConfigureRemoteCertificateValidationCallback(fun _ _ _ _ -> true) |> ignore
                 new LdapConnection(opts)
             else
                 new LdapConnection()
@@ -60,9 +63,11 @@ module LDAPUtils =
         let scope = scopeToInt config.scope
         let searchConstraints = new LdapSearchConstraints()
         searchConstraints.ReferralFollowing <- true
-        searchConstraints.SetControls([| createSDFlagControl() |])
+        searchConstraints.SetControls [| createSDFlagControl() |]
         let results = conn.SearchAsync(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints, CancellationToken.None) |> waitTask
-        gatherEntries results
+        match gatherEntries results with
+        | Ok (entries, referrals) -> Ok (entries, referrals)
+        | Error err -> Error err
 
 
     let private runByteHandlers =
@@ -79,14 +84,14 @@ module LDAPUtils =
     let internal doSearch config =
         let conn = readyLDAPSearch config
         try
-            doLDAPSearch conn config |> Ok
+            doLDAPSearch conn config
         with
-            exn -> exn.Message |> Error
+            exn -> Error { message = exn.Message; context = "search" }
 
 
-    let internal createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<LdapEntry list, string>) =
+    let internal createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<LdapEntry list * string list, LdapError>) =
         match results with
-        | Ok entries ->
+        | Ok (entries, referrals) ->
             let ldapData =
                 entries
                 |> List.map (fun entry ->
@@ -130,10 +135,12 @@ module LDAPUtils =
             { searchType = searchType
               searchConfig = config
               ldapSearcherError = None
-              ldapData = ldapData }
+              ldapData = ldapData
+              ldapReferrals = referrals }
 
-        | Error e ->
+        | Error err ->
             { searchType = searchType
               searchConfig = config
-              ldapSearcherError = e |> Some
-              ldapData = [Map.empty<string,string list>] }
+              ldapSearcherError = Some err
+              ldapData = [Map.empty]
+              ldapReferrals = [] }

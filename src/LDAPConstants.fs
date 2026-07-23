@@ -316,4 +316,13 @@ module LDAPConstants =
               "525", "Protected Users"
               "526", "Key Admins"
               "527", "Enterprise Key Admins" ]
+
+    // ACE type identifiers
+    let accessAllowedAce = 0x00uy
+    let accessDeniedAce = 0x01uy
+    let accessAllowedObjectAce = 0x05uy
+    let accessDeniedObjectAce = 0x06uy
+    // Object ACE flags (DWORD at offset+8 in Object ACEs)
+    let aceObjectTypePresent = 0x01
+    let aceInheritedObjectTypePresent = 0x02
         

@@ -174,7 +174,7 @@ module LDAPDataHandlers =
         loop map keysToHandle
 
 
-    let internal handleGenericStrings (map: Map<string, ADDataTypes list>) =
+    let internal handleGenericStrings (map: Map<string, ADDataTypes list>) : LDAPEntryData =
         let decomposeList (adList: ADDataTypes list) =
             adList
             |> List.map(fun adItem ->
@@ -186,7 +186,7 @@ module LDAPDataHandlers =
         pairs |> List.fold(fun acc (key, value) -> acc |> Map.add key value ) Map.empty<string,string list>
 
 
-    let internal handleThingsWithTicks (map: Map<string, string list>) =
+    let internal handleThingsWithTicks (map: LDAPEntryData) =
         let returnTicksAfterEpoch ticks =
             let ticks' = Int64.Parse ticks
             match ticks' with
@@ -197,7 +197,7 @@ module LDAPDataHandlers =
                 |> fun epoch -> epoch.AddTicks ticks'
                 |> fun date -> date.ToShortDateString ()
         
-        let decider (map: Map<string, string list>) key =
+        let decider (map: LDAPEntryData) key =
             match map.ContainsKey key with
             | true ->
                 let value = map[key] |> List.head
@@ -215,14 +215,14 @@ module LDAPDataHandlers =
         |> List.fold decider map
 
 
-    let handleThingsWithTimespans (map: Map<string, string list>) =
+    let handleThingsWithTimespans (map: LDAPEntryData) =
         let returnTimespan ticks =
             let ticks' = Int64.Parse ticks
             match ticks' with
             | Int64.MinValue -> "no expiry"
             | _ -> TimeSpan.FromTicks (abs ticks') |> fun time -> time.TotalHours.ToString ()
         
-        let decider (map: Map<string, string list>) key =
+        let decider (map: LDAPEntryData) key =
             match map.ContainsKey key with
             | true ->
                 let value = map[key] |> List.head
@@ -238,13 +238,13 @@ module LDAPDataHandlers =
         |> List.fold decider map
 
 
-    let handleThingsWithZulus (map: Map<string, string list>) =
+    let handleThingsWithZulus (map: LDAPEntryData) =
         let returnDateFromZulu zuluString =
             let format = "yyyyMMddHHmmss.fZ"
-            DateTime.ParseExact(zuluString, format, System.Globalization.CultureInfo.InvariantCulture)
+            DateTime.ParseExact(zuluString, format, Globalization.CultureInfo.InvariantCulture)
             |> fun date -> $"{date.ToShortDateString ()} {date.ToShortTimeString ()}"
         
-        let decider (map: Map<string, string list>) key =
+        let decider (map: LDAPEntryData) key =
             match map.ContainsKey key with
             | true ->
                 let value = map[key]
@@ -258,7 +258,7 @@ module LDAPDataHandlers =
         |> List.fold decider map
  
 
-    let handleGroupType (map: Map<string, string list>) =
+    let handleGroupType (map: LDAPEntryData) : LDAPEntryData =
         match map.ContainsKey "grouptype" with
         | true ->
             let value = map["grouptype"] |> List.head
@@ -267,7 +267,7 @@ module LDAPDataHandlers =
         | false -> map
 
 
-    let handleSystemFlags (map: Map<string, string list>) =
+    let handleSystemFlags (map: LDAPEntryData) : LDAPEntryData =
         match map.ContainsKey "systemflags" with
         | true ->
             let value = map["systemflags"] |> List.head
@@ -276,9 +276,9 @@ module LDAPDataHandlers =
         | false -> map
 
 
-    let internal handleUserAccountControl (map: Map<string, string list>) =
+    let internal handleUserAccountControl (map: LDAPEntryData) : LDAPEntryData =
         let readUserAccountControl bits =
-            [for i in 0..31 do if ((int bits >>> i) &&& 1) = 1 then yield uacPropertyFlags[i]]
+            [for i in 0..31 do if int bits >>> i &&& 1 = 1 then yield uacPropertyFlags[i]]
             
         match map.ContainsKey "useraccountcontrol" with
         | true ->
@@ -288,7 +288,7 @@ module LDAPDataHandlers =
         | false -> map
 
 
-    let handleSamAccountType (map: Map<string, string list>) =
+    let handleSamAccountType (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "samaccounttype" with
          | true ->
              let value = map["samaccounttype"] |> List.head |> int
@@ -301,7 +301,7 @@ module LDAPDataHandlers =
          | false -> map
 
 
-    let handlemsdsSupportedEncryptionType (map: Map<string, string list>) =
+    let handlemsdsSupportedEncryptionType (map: LDAPEntryData) : LDAPEntryData =
          let readmsDSSupportedEncryptionTypes (bits: string) = msdsSupportedEncryptionTypes[int bits]
          
          match map.ContainsKey "msds-supportedencryptiontypes" with
@@ -312,7 +312,7 @@ module LDAPDataHandlers =
          | false -> map
 
 
-    let handleWellKnownThings (map: Map<string, string list>) =
+    let handleWellKnownThings (map: LDAPEntryData) =
         let splitAndSplice (value: string list) =
             [for item in value do
                 let splits = item.Split ':'
@@ -320,7 +320,7 @@ module LDAPDataHandlers =
                 let dn = splits[3]
                 yield $"{guid} -> {dn}"]
         
-        let decider (map: Map<string, string list>) key =
+        let decider (map: LDAPEntryData) key =
             match map.ContainsKey key with
             | true ->
                 let value = map[key]
@@ -333,43 +333,43 @@ module LDAPDataHandlers =
         |> List.fold decider map
 
 
-    let handleInstanceType (map: Map<string, string list>) =
+    let handleInstanceType (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "instancetype" with
          | true ->
              let value = map["instancetype"] |> List.head
              let map = map.Remove "instancetype"
-             map.Add("instancetype", instanceTypesList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+             map.Add("instancetype", instanceTypesList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map
          
          
-    let handleRepSto (map: Map<string, string list>) =
+    let handleRepSto (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "repsto" with
          | true -> map.Remove "repsto"
          | false -> map
 
 
-    let handleTrustAttibutes (map: Map<string, string list>) =
+    let handleTrustAttibutes (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "trustattributes" with
          | true ->
              let value = map["trustattributes"] |> List.head
              let map = map.Remove "trustattributes"
-             map.Add("trustattributes", trustAttributesList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+             map.Add("trustattributes", trustAttributesList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map
          
          
-    let handleTrustDirection (map: Map<string, string list>) =
+    let handleTrustDirection (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "trustdirection" with
          | true ->
              let value = map["trustdirection"] |> List.head
              let map = map.Remove "trustdirection"
-             map.Add("trustdirection", trustDirectionList |> List.filter (fun p -> (int value = int p)) |> List.map _.ToString())
+             map.Add("trustdirection", trustDirectionList |> List.filter (fun p -> int value = int p) |> List.map _.ToString())
          | false -> map
 
 
-    let handleTrustType (map: Map<string, string list>) =
+    let handleTrustType (map: LDAPEntryData) : LDAPEntryData=
          match map.ContainsKey "trusttype" with
          | true ->
              let value = map["trusttype"] |> List.head
              let map = map.Remove "trusttype"
-             map.Add("trusttype", trustTypeList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+             map.Add("trusttype", trustTypeList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map

@@ -9,9 +9,9 @@ module Serializer =
 
 
     let private resolver = 
-                MessagePackSerializerOptions.Standard
-                    .WithResolver(CompositeResolver.Create(FSharpResolver.Instance,StandardResolver.Instance))
-                    .WithCompression(MessagePackCompression.Lz4BlockArray)
+        MessagePackSerializerOptions.Standard
+            .WithResolver(CompositeResolver.Create(FSharpResolver.Instance,StandardResolver.Instance))
+            .WithCompression(MessagePackCompression.Lz4BlockArray)
 
 
     ///<summary>
@@ -22,11 +22,15 @@ module Serializer =
     ///<exception cref="System.IO.IOException">
     ///    Thrown if there is an error accessing or writing to the disk file.
     ///</exception>
+    let private fileName (result: LDAPSearchResult) =
+        $"{result.searchConfig.ldapDN}-{result.searchType}-lcache.bin"
+
     let serializeToDisk (results: LDAPSearchResult list) =
         results
-        |> List.iter(fun result ->
-            use fileStream = new FileStream($"""{result.searchConfig.ldapDN}-{result.searchType}-lcache.bin""", FileMode.Create)
-            MessagePackSerializer.Serialize (fileStream, result, resolver))
+        |> List.groupBy fileName
+        |> List.iteri (fun _ (file, group) ->
+            use fileStream = new FileStream(file, FileMode.Create)
+            MessagePackSerializer.Serialize(fileStream, group, resolver))
         results
 
         

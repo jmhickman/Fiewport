@@ -22,13 +22,15 @@ module TestData =
         { searchType = searchType
           searchConfig = config
           ldapSearcherError = None
-          ldapData = [data] }
+          ldapData = [data]
+          ldapReferrals = [] }
 
     let mkErrorResult (config : SearcherConfig) (message : string) =
         { searchType = LDAPSearchType.GetUsers
           searchConfig = config
-          ldapSearcherError = Some message
-          ldapData = [Map.empty] }
+          ldapSearcherError = Some { message = message; context = "search" }
+          ldapData = [Map.empty]
+          ldapReferrals = [] }
 
     let adminUser =
         mkResult LDAPSearchType.GetUsers defaultConfig (mkMap [

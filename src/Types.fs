@@ -21,7 +21,7 @@ module Types =
     /// impossible for me alone.
     /// </remarks>
     /// 
-    type ADDataTypes =       
+    type internal ADDataTypes =       
         | ADBytes of byte array 
         | ADString of string 
         
@@ -81,7 +81,7 @@ module Types =
     ///
     /// <summary>Represents a single LDAP entry as a map of attribute names to decoded string values.</summary>
     ///
-    type LDAPEntryData = Map<string, string list>
+    type internal LDAPEntryData = Map<string, string list>
 
 
     ///
@@ -127,3 +127,19 @@ module Types =
     ///
     /// <summary>Defines a MoldAction for the <c>Tee</c></summary>    
     type MoldAction<'T> = 'T -> unit
+
+
+    ///
+    /// <summary>
+    /// Pipeline record for NT Security Descriptor decoding.
+    /// Each pipeline stage updates the record with its contribution;
+    /// the <c>valid</c> flag short-circuits the pipeline on failure.
+    /// </summary>
+    ///
+    type internal SecurityDescriptorContext =
+        { bytes: byte array
+          valid: bool
+          daclOffset: int
+          aceCount: int
+          aclStart: int
+          permissions: string list }

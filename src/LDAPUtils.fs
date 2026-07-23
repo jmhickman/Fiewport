@@ -76,6 +76,13 @@ module LDAPUtils =
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
         >> handleTrustType >> handleTrustAttibutes >> handleTrustDirection
 
+    let internal doSearch config =
+        let conn = readyLDAPSearch config
+        try
+            doLDAPSearch conn config |> Ok
+        with
+            exn -> exn.Message |> Error
+
 
     let internal createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<LdapEntry list, string>) =
         match results with

@@ -5,15 +5,6 @@ module Searcher =
     open LDAPUtils
 
 
-    let private doSearch config =
-        let conn = readyLDAPSearch config
-        try
-            doLDAPSearch conn config |> Ok
-        with
-            exn -> exn.Message |> Error
-
-
-    ///
     /// <summary>
     /// <para>
     /// A Searcher is an abstraction around a group of pre-defined 'most-common' LDAP searches. All methods take a

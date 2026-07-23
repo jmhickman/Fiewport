@@ -14,7 +14,7 @@ module Tee =
     /// <code>[config]
     /// |> Searcher.getUsers
     /// |> Tee.filter (Filter.attributePresent "sAMAccountName") prettyPrint
-    /// |> Tee.filter (Filter.attributePresent "adminCount") (fileWriteAction "admin-path")
+    /// |> Tee.filter (Filter.attributePresent "adminCount") (writeAFile "investigate-admin-path.lst")
     /// |> ignore</code>
     /// </summary>
     ///
@@ -34,5 +34,3 @@ module Tee =
     let mold (mold: Mold<'T>) (action: MoldAction<'T>) results =
         results |> mold |> action
         results
-
-    // TODO: Is it worth it to add filterAndPrint?

@@ -10,6 +10,7 @@ module Program =
             MoldTests.moldTests
             TeeTests.teeTests
             LDAPDataHandlerTests.dataHandlerTests
+            SecurityDescriptorTests.securityDescriptorTests
         ]
 
     [<EntryPoint>]

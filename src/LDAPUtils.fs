@@ -8,7 +8,7 @@ module LDAPUtils =
     open Types
     open LDAPDataHandlers
 
-    let private scopeToInt (s: SearchScope) =
+    let private scopeToInt s =
         match s with
         | Base -> LdapConnection.ScopeBase
         | OneLevel -> LdapConnection.ScopeOne
@@ -38,13 +38,15 @@ module LDAPUtils =
     let internal readyLDAPSearch config =
         let port = if config.ldapPort <> 0 then config.ldapPort else 389
         let conn =
-            if config.useSsl then
-                let opts = new LdapConnectionOptions()
-                opts.UseSsl () |> ignore
-                opts.ConfigureRemoteCertificateValidationCallback(fun _ _ _ _ -> true) |> ignore
-                new LdapConnection(opts)
-            else
+            match config.useSsl with
+            | true ->
+                new LdapConnectionOptions ()
+                |> fun opts -> opts.UseSsl ()
+                |> fun opts -> opts.ConfigureRemoteCertificateValidationCallback(fun _ _ _ _ -> true)
+                |> fun opts -> new LdapConnection(opts)
+            | false ->
                 new LdapConnection ()
+
         let constraints = new LdapConstraints ()
         constraints.ReferralFollowing <- true
         conn.set_Constraints constraints
@@ -52,6 +54,8 @@ module LDAPUtils =
         conn.BindAsync(config.username, config.password, CancellationToken.None) |> waitTaskUnit
         conn
 
+    
+    /// Ask for SecurityDescriptors, otherwise they won't be supplied
     let private createSDFlagControl () =
         // LDAP_SERVER_SD_FLAGS_OID: 1.2.840.113556.1.4.801
         // BER: SEQUENCE { INTEGER 7 } (7 = OWNER(1) | GROUP(2) | DACL(4))
@@ -59,15 +63,19 @@ module LDAPUtils =
         let sdFlags = [| 48uy; 3uy; 2uy; 1uy; 7uy |]
         new LdapControl("1.2.840.113556.1.4.801", true, sdFlags)
 
+    
+    /// Do the actual search against the configured connection
     let internal doLDAPSearch (conn: LdapConnection) config =
         let scope = scopeToInt config.scope
         let searchConstraints = new LdapSearchConstraints ()
+        
         searchConstraints.ReferralFollowing <- true
-        searchConstraints.SetControls [| createSDFlagControl () |]
-        let results = conn.SearchAsync(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints, CancellationToken.None) |> waitTask
-        match gatherEntries results with
-        | Ok (entries, referrals) -> (entries, referrals) |> Ok
-        | Error err -> err |> Error
+        searchConstraints.SetControls [|createSDFlagControl ()|]
+        let results = 
+            conn.SearchAsync(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints, CancellationToken.None) 
+            |> waitTask
+        
+        gatherEntries results
 
 
     let private runByteHandlers =
@@ -83,10 +91,10 @@ module LDAPUtils =
 
     /// Extract byte values from an LDAP attribute, handling the quirks of Novell's API:
     ///
-    /// - `ByteValueArray` can be null (no values), empty (no values), or contain null entries
-    ///   (mixed null/non-null). When it's null/empty/all-null, fall back to `ByteValue`
-    ///   (single-value attributes). When `ByteValue` is also null, the attribute is empty.
-    /// - Non-null entries in `ByteValueArray` become `ADBytes` values.
+    /// `ByteValueArray` can be null (no values), empty (no values), or contain null entries
+    /// (mixed null/non-null). When it's null/empty/all-null, fall back to `ByteValue`
+    /// (single-value attributes). When `ByteValue` is also null, the attribute is empty.
+    /// Non-null entries in `ByteValueArray` become `ADBytes` values.
     let private extractAttributeValues (attr: LdapAttribute) =
         match attr.ByteValueArray with
         | null ->

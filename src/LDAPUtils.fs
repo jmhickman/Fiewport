@@ -19,19 +19,19 @@ module LDAPUtils =
 
     let private gatherEntries (results: ILdapSearchResults) =
         let rec loop acc referrals = task {
-            let! more = results.HasMoreAsync()
+            let! more = results.HasMoreAsync ()
             if more then
                 try
-                    let! entry = results.NextAsync()
+                    let! entry = results.NextAsync ()
                     return! loop (entry :: acc) referrals
                 with
                 | :? LdapReferralException as ex ->
-                    let refs = ex.GetReferrals() |> List.ofArray
-                    return Ok (List.rev acc, refs)
+                    let refs = ex.GetReferrals () |> List.ofArray
+                    return (List.rev acc, refs) |> Ok
                 | ex ->
-                    return Error { message = $"LDAP iteration error: {ex.Message}"; context = "iterate" }
+                    return { message = $"LDAP iteration error: {ex.Message}"; context = "iterate" } |> Error
             else
-            return Ok (List.rev acc, referrals)
+            return (List.rev acc, referrals) |> Ok
         }
         loop [] [] |> waitTask
 
@@ -40,14 +40,14 @@ module LDAPUtils =
         let conn =
             if config.useSsl then
                 let opts = new LdapConnectionOptions()
-                opts.UseSsl() |> ignore
+                opts.UseSsl () |> ignore
                 opts.ConfigureRemoteCertificateValidationCallback(fun _ _ _ _ -> true) |> ignore
                 new LdapConnection(opts)
             else
-                new LdapConnection()
-        let constraints = new LdapConstraints()
+                new LdapConnection ()
+        let constraints = new LdapConstraints ()
         constraints.ReferralFollowing <- true
-        conn.set_Constraints(constraints)
+        conn.set_Constraints constraints
         conn.ConnectAsync(config.ldapHost, port, CancellationToken.None) |> waitTaskUnit
         conn.BindAsync(config.username, config.password, CancellationToken.None) |> waitTaskUnit
         conn
@@ -61,13 +61,13 @@ module LDAPUtils =
 
     let internal doLDAPSearch (conn: LdapConnection) config =
         let scope = scopeToInt config.scope
-        let searchConstraints = new LdapSearchConstraints()
+        let searchConstraints = new LdapSearchConstraints ()
         searchConstraints.ReferralFollowing <- true
-        searchConstraints.SetControls [| createSDFlagControl() |]
+        searchConstraints.SetControls [| createSDFlagControl () |]
         let results = conn.SearchAsync(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints, CancellationToken.None) |> waitTask
         match gatherEntries results with
-        | Ok (entries, referrals) -> Ok (entries, referrals)
-        | Error err -> Error err
+        | Ok (entries, referrals) -> (entries, referrals) |> Ok
+        | Error err -> err |> Error
 
 
     let private runByteHandlers =
@@ -80,6 +80,31 @@ module LDAPUtils =
         >> handleGroupType >> handleSystemFlags >> handleUserAccountControl >> handleSamAccountType
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
         >> handleTrustType >> handleTrustAttibutes >> handleTrustDirection
+
+    /// Extract byte values from an LDAP attribute, handling the quirks of Novell's API:
+    ///
+    /// - `ByteValueArray` can be null (no values), empty (no values), or contain null entries
+    ///   (mixed null/non-null). When it's null/empty/all-null, fall back to `ByteValue`
+    ///   (single-value attributes). When `ByteValue` is also null, the attribute is empty.
+    /// - Non-null entries in `ByteValueArray` become `ADBytes` values.
+    let private extractAttributeValues (attr: LdapAttribute) =
+        match attr.ByteValueArray with
+        | null ->
+            match attr.ByteValue with
+            | null -> List.empty<ADDataTypes>
+            | b -> [ADBytes b]
+        | arr when arr.Length = 0 ->
+            match attr.ByteValue with
+            | null -> List.empty<ADDataTypes>
+            | b -> [ADBytes b]
+        | arr ->
+            let nonNull = arr |> Array.filter (fun b -> b <> null)
+            if nonNull.Length = 0 then
+                match attr.ByteValue with
+                | null -> List.empty<ADDataTypes>
+                | b -> [ADBytes b]
+            else
+                nonNull |> Array.map ADBytes |> List.ofArray
 
     let internal doSearch config =
         let conn = readyLDAPSearch config
@@ -95,40 +120,15 @@ module LDAPUtils =
             let ldapData =
                 entries
                 |> List.map (fun entry ->
-                    let attrSet = entry.GetAttributeSet()
+                    let attrSet = entry.GetAttributeSet ()
                     let names = attrSet.Keys :> seq<string>
                     names
-                    |> Seq.map (fun name ->
-                        let attr = attrSet.[name]
-                        let values =
-                            match attr.ByteValueArray with
-                            | null ->
-                                match attr.ByteValue with
-                                | null -> List.empty<ADDataTypes>
-                                | b -> [ADBytes b]
-                            | arr when arr.Length = 0 ->
-                                match attr.ByteValue with
-                                | null -> List.empty<ADDataTypes>
-                                | b -> [ADBytes b]
-                            | arr ->
-                                let nonNull = arr |> Array.filter (fun b -> b <> null)
-                                if nonNull.Length = 0 && arr.Length > 0 then
-                                    match attr.ByteValue with
-                                    | null -> List.empty<ADDataTypes>
-                                    | b -> [ADBytes b]
-                                else
-                                    nonNull
-                                    |> Array.map ADBytes
-                                    |> List.ofArray
-                        (name, values)
-                    )
+                    |> Seq.map (fun name -> name, extractAttributeValues attrSet.[name])
                     |> Seq.toList
                     |> List.fold (fun acc (name, values) ->
-                        match values with
-                        | [] -> acc
-                        | _ -> acc |> Map.add (name.ToLowerInvariant()) values
-                    ) Map.empty<string, ADDataTypes list>
-                )
+                        if List.isEmpty values then acc
+                        else Map.add (name.ToLowerInvariant()) values acc)
+                        Map.empty<string, ADDataTypes list> )
                 |> List.map runByteHandlers
                 |> List.map runStringHandlers
 

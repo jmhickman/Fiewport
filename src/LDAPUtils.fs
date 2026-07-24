@@ -137,22 +137,6 @@ module LDAPUtils =
                         if List.isEmpty values then acc
                         else Map.add (name.ToLowerInvariant()) values acc)
                         Map.empty<string, ADDataTypes list> )
-                // DEBUG DUMP: write raw ADDataTypes before byte/string handlers
-                |> List.mapi (fun i map ->
-                    let dumpPath = "raw-dump.txt"
-                    System.IO.File.AppendAllText(dumpPath,
-                        sprintf "\n--- Entry %d (%d attrs) ---\n" i (Map.count map))
-                    map |> Map.iter (fun key values ->
-                        values |> List.iteri (fun j v ->
-                            match v with
-                            | ADBytes b ->
-                                System.IO.File.AppendAllText(dumpPath,
-                                    sprintf "%s[%d]: ADBytes(%d bytes): %s\n" key j (Array.length b)
-                                        (System.BitConverter.ToString(b)))
-                            | ADString s ->
-                                System.IO.File.AppendAllText(dumpPath,
-                                    sprintf "%s[%d]: ADString: %s\n" key j (if s.Length > 100 then s.Substring(0, 100) + "..." else s))))
-                    map)
                 |> List.map runByteHandlers
                 |> List.map runStringHandlers
 

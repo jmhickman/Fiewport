@@ -343,7 +343,7 @@ module Searcher =
 
     ///
     /// <summary>
-    /// Connects to retrieve the Protected Users group if it contains any members
+    /// Connects to an AD and attempts to retrieve the Protected Users group if it contains any members
     /// using the filter
     /// <code>(&amp;(samaccountname=Protect*)(member=*))</code>
     /// User-supplied filter is ignored for this search.
@@ -359,7 +359,7 @@ module Searcher =
 
     ///
     /// <summary>
-    /// Connects to retrieve groups whose members are in the Builtin Administrators group
+    /// Connects to an AD and attempts to retrieve groups whose members are in the Builtin Administrators group
     /// using the filter
     /// <code>(&amp;(objectCategory=group)(memberOf=CN=Administrators,CN=Builtin,&lt;DC&gt;</code>
     /// User-supplied filter is ignored for this search.
@@ -373,6 +373,12 @@ module Searcher =
         |> List.map2 (createLDAPSearchResults LDAPSearchType.GetGroupsWithLocalAdminRights) config
 
 
+    ///
+    /// <summary>
+    /// Connects to an AD and attempts to retrieve everything the server knows about.
+    /// User-supplied filter is ignored for this search.
+    /// </summary>
+    ///
     let dumpDomainObjects (config: SearcherConfig list) =
         config
         |> List.map (fun c ->

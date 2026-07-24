@@ -12,6 +12,7 @@ module Program =
             TeeTests.teeTests
             LDAPDataHandlerTests.dataHandlerTests
             SecurityDescriptorTests.securityDescriptorTests
+            ByteHandlerTests.allTests
         ]
 
     [<EntryPoint>]

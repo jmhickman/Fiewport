@@ -23,7 +23,7 @@ module MoldTests =
 
             test "extractOccurances returns flat string list for existing key" {
                 let actual = Mold.extractOccurances "cn" [ TestData.adminUser; TestData.regularUser ]
-                Expect.equal actual ["Administrator"; "jsmith"] "two values in order"
+                Expect.equal actual ["Administrator"; "Ebony Kelly"] "two values in order"
             }
 
             test "extractOccurances returns empty list for missing key" {
@@ -32,7 +32,7 @@ module MoldTests =
             }
 
             test "extractOccurances skips entries that lack the key" {
-                let actual = Mold.extractOccurances "adminCount" [ TestData.adminUser; TestData.computerObject ]
+                let actual = Mold.extractOccurances "adminCount" [ TestData.adminUser; TestData.dcComputer ]
                 Expect.equal actual ["1"] "only one value present"
             }
         ]

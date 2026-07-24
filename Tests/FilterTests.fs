@@ -31,9 +31,9 @@ module FilterTests =
             }
             test "valueIs finds value across any key" {
                 let input = [ TestData.adminUser; TestData.regularUser ]
-                let actual = Filter.valueIs "admin" input
-                Expect.equal ((List.head actual).ldapData |> List.length) 1 "adminUser has admin"
-                Expect.equal ((List.item 1 actual).ldapData |> List.length) 0 "regularUser no admin"
+                let actual = Filter.valueIs "Administrator" input
+                Expect.equal ((List.head actual).ldapData |> List.length) 1 "adminUser has Administrator"
+                Expect.equal ((List.item 1 actual).ldapData |> List.length) 0 "regularUser no Administrator"
             }
             test "byConfig isolates by config" {
                 let altConfig = { TestData.defaultConfig with ldapHost = "10.0.0.1" }

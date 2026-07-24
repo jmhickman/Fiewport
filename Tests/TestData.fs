@@ -4,6 +4,8 @@ module TestData =
 
     open Fiewport.Types
 
+    // ── Configs ──────────────────────────────────────────────────────
+
     let defaultConfig : SearcherConfig =
         { properties = [||]
           filter = ""
@@ -15,6 +17,11 @@ module TestData =
           username = "testuser"
           password = "P@ssw0rd" }
 
+    let altConfig : SearcherConfig =
+        { defaultConfig with ldapHost = "10.0.0.1" }
+
+    // ── Map builders ─────────────────────────────────────────────────
+
     let mkMap (pairs : (string * string list) list) : Map<string, string list> =
         Map.ofList pairs
 
@@ -25,6 +32,13 @@ module TestData =
           ldapData = [data]
           ldapReferrals = [] }
 
+    let mkMultiResult (searchType : LDAPSearchType) (config : SearcherConfig) (maps : Map<string, string list> list) =
+        { searchType = searchType
+          searchConfig = config
+          ldapSearcherError = None
+          ldapData = maps
+          ldapReferrals = [] }
+
     let mkErrorResult (config : SearcherConfig) (message : string) =
         { searchType = LDAPSearchType.GetUsers
           searchConfig = config
@@ -32,20 +46,137 @@ module TestData =
           ldapData = [Map.empty]
           ldapReferrals = [] }
 
+    // ── User fixtures ────────────────────────────────────────────────
+
     let adminUser =
         mkResult LDAPSearchType.GetUsers defaultConfig (mkMap [
             "cn", ["Administrator"]
-            "sAMAccountName", ["admin"]
+            "sAMAccountName", ["Administrator"]
             "adminCount", ["1"]
-            "useraccountcontrol", ["66048"] ])
+            "useraccountcontrol", ["66048"]
+            "objectsid", ["S-1-5-21-1166717504-1521404966-3895803826-500"]
+            "samaccounttype", ["SAM_USER_OBJECT_OR_NORMAL_ACCOUNT"]
+            "whencreated", ["04/05/2025 06:31"] ])
 
     let regularUser =
         mkResult LDAPSearchType.GetUsers defaultConfig (mkMap [
-            "cn", ["jsmith"]
-            "sAMAccountName", ["jsmith"]
-            "useraccountcontrol", ["512"] ])
+            "cn", ["Ebony Kelly"]
+            "sAMAccountName", ["Ebony.Kelly"]
+            "useraccountcontrol", ["512"]
+            "objectsid", ["S-1-5-21-1166717504-1521404966-3895803826-1123"]
+            "samaccounttype", ["SAM_USER_OBJECT_OR_NORMAL_ACCOUNT"]
+            "department", ["Marketing"]
+            "mail", ["Ebony.Kelly@ad-lab.com"] ])
 
-    let computerObject =
+    let disabledUser =
+        mkResult LDAPSearchType.GetUsers defaultConfig (mkMap [
+            "cn", ["Guest"]
+            "sAMAccountName", ["Guest"]
+            "useraccountcontrol", ["256"]
+            "objectsid", ["S-1-5-21-1166717504-1521404966-3895803826-501"] ])
+
+    let krbtgtUser =
+        mkResult LDAPSearchType.GetUsers defaultConfig (mkMap [
+            "cn", ["krbtgt"]
+            "sAMAccountName", ["krbtgt"]
+            "useraccountcontrol", ["514"]
+            "msds-supportedencryptiontypes", ["RC4_HMAC_MD5"]
+            "serviceprincipalname", ["kadmin/changepw"] ])
+
+    let kerberoastTarget =
+        mkResult LDAPSearchType.GetKerberoastTargets defaultConfig (mkMap [
+            "cn", ["svc_backup"]
+            "sAMAccountName", ["svc_backup"]
+            "serviceprincipalname", ["cifs/fileserver01"; "cifs/fileserver01.test.local"]
+            "useraccountcontrol", ["66048"]
+            "pwdlastset", ["132345678901234567"] ])
+
+    let asrepTarget =
+        mkResult LDAPSearchType.GetASREPTargets defaultConfig (mkMap [
+            "cn", ["svc_asrep"]
+            "sAMAccountName", ["svc_asrep"]
+            "useraccountcontrol", ["4249536"] ])
+
+    // ── Computer fixtures ────────────────────────────────────────────
+
+    let dcComputer =
+        mkResult LDAPSearchType.GetComputers defaultConfig (mkMap [
+            "cn", ["AD-SERVER-01"]
+            "sAMAccountName", ["AD-SERVER-01$"]
+            "dnshostname", ["AD-Server-01.ad-lab.local"]
+            "useraccountcontrol", ["32768"]
+            "operatingsystem", ["Windows Server 2019 Essentials"]
+            "msds-supportedencryptiontypes", ["RC4, AES128, AES256"]
+            "objectsid", ["S-1-5-21-1166717504-1521404966-3895803826-1000"]
+            "samaccounttype", ["SAM_MACHINE_ACCOUNT"] ])
+
+    let workstationComputer =
         mkResult LDAPSearchType.GetComputers defaultConfig (mkMap [
             "cn", ["WORKSTATION01"]
-            "dnshostname", ["workstation01.test.local"] ])
+            "sAMAccountName", ["WORKSTATION01$"]
+            "dnshostname", ["workstation01.test.local"]
+            "useraccountcontrol", ["4096"]
+            "samaccounttype", ["SAM_MACHINE_ACCOUNT"] ])
+
+    // ── Group fixtures ───────────────────────────────────────────────
+
+    let builtinAdminsGroup =
+        mkResult LDAPSearchType.GetGroups defaultConfig (mkMap [
+            "cn", ["Administrators"]
+            "sAMAccountName", ["Administrators"]
+            "grouptype", ["-2147483645"]
+            "systemflags", ["-2147483616"]
+            "member", [
+                "CN=Domain Admins,CN=Users,DC=ad-lab,DC=local";
+                "CN=Administrator,CN=Users,DC=ad-lab,DC=local"]
+            "objectsid", ["S-1-5-32-544"]
+            "samaccounttype", ["SAM_ALIAS_OBJECT"] ])
+
+    let securityGroup =
+        mkResult LDAPSearchType.GetGroups defaultConfig (mkMap [
+            "cn", ["IT_Folders"]
+            "sAMAccountName", ["IT_Folders"]
+            "grouptype", ["-2147483644"]
+            "member", ["CN=Ebony Kelly,OU=Marketing,DC=ad-lab,DC=local"]
+            "objectsid", ["S-1-5-21-1166717504-1521404966-3895803826-1111"]
+            "samaccounttype", ["SAM_ALIAS_OBJECT"]
+            "whencreated", ["04/05/2025 15:02"] ])
+
+    let distributionGroup =
+        mkResult LDAPSearchType.GetGroups defaultConfig (mkMap [
+            "cn", ["All Staff"]
+            "sAMAccountName", ["All_Staff"]
+            "grouptype", ["8"]
+            "samaccounttype", ["SAM_ALIAS_OBJECT"] ])
+
+    // ── Trust fixture ────────────────────────────────────────────────
+
+    let domainTrust =
+        mkResult LDAPSearchType.GetDomainTrusts defaultConfig (mkMap [
+            "cn", ["partner.com"]
+            "flatname", ["partner.com"]
+            "trustdirection", ["3"]
+            "trusttype", ["2"]
+            "trustattributes", ["32"] ])
+
+    // ── Multi-map result ─────────────────────────────────────────────
+
+    let multipleUsers =
+        mkMultiResult LDAPSearchType.GetUsers defaultConfig [
+            mkMap ["cn", ["User1"]; "sAMAccountName", ["user1"]; "useraccountcontrol", ["512"]]
+            mkMap ["cn", ["User2"]; "sAMAccountName", ["user2"]; "useraccountcontrol", ["512"]]
+            mkMap ["cn", ["User3"]; "sAMAccountName", ["user3"]; "useraccountcontrol", ["514"]] ]
+
+    let multipleGroups =
+        mkMultiResult LDAPSearchType.GetGroups defaultConfig [
+            mkMap ["cn", ["GroupA"]; "grouptype", ["-2147483646"]]
+            mkMap ["cn", ["GroupB"]; "grouptype", ["8"]] ]
+
+    // ── Empty result ─────────────────────────────────────────────────
+
+    let emptyResult =
+        { searchType = LDAPSearchType.GetDomainTrusts
+          searchConfig = defaultConfig
+          ldapSearcherError = None
+          ldapData = []
+          ldapReferrals = [] }

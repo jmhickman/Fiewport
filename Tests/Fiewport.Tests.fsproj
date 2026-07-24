@@ -13,6 +13,7 @@
         <Compile Include="MoldTests.fs" />
         <Compile Include="SecurityDescriptorTests.fs" />
         <Compile Include="TeeTests.fs" />
+        <Compile Include="ByteHandlerTests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

@@ -36,11 +36,10 @@ module LDAPDataHandlers =
         
         match map.ContainsKey "dnsrecord" with
         | true ->
-            let ntBytes = map["dnsrecord"]
+            let values = map["dnsrecord"]
             let map = map.Remove "dnsrecord"
-            match ntBytes with
-            | [ADBytes b] -> map.Add("dnsrecord", [extract b])                              
-            | _ -> map
+            let decoded = values |> List.collect (function ADBytes b -> [extract b] | _ -> [])
+            if List.isEmpty decoded then map else map.Add("dnsrecord", decoded)
         | false -> map
 
 

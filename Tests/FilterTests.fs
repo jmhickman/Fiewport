@@ -36,14 +36,15 @@ module FilterTests =
                 Expect.equal ((List.item 1 actual).ldapData |> List.length) 0 "regularUser no Administrator"
             }
             test "byConfig isolates by config" {
-                let altConfig = { TestData.defaultConfig with ldapHost = "10.0.0.1" }
-                let altResult = TestData.mkResult LDAPSearchType.GetUsers altConfig (TestData.mkMap [ "cn", ["other"] ])
+                let altLdapDetails = { TestData.defaultLdapDetails with ldapHost = "10.0.0.1" }
+                let altResult = TestData.mkResult LDAPSearchType.GetUsers altLdapDetails (TestData.mkMap [ "cn", ["other"] ])
                 let input = [ TestData.adminUser; altResult ]
-                Expect.equal (Filter.byConfig TestData.defaultConfig input).Length 1 "only defaultConfig result"
+                Expect.equal (Filter.byConfig TestData.defaultLdapDetails input).Length 1 "only defaultConfig result"
             }
             test "byConfig includes error results" {
-                let err = TestData.mkErrorResult { TestData.defaultConfig with ldapHost = "9.9.9.9" } "refused"
-                Expect.equal (Filter.byConfig TestData.defaultConfig [ TestData.adminUser; err ]).Length 2 "error results always pass"
+                let altLdapDetails = { TestData.defaultLdapDetails with ldapHost = "9.9.9.9" }
+                let err = TestData.mkErrorResult altLdapDetails "refused"
+                Expect.equal (Filter.byConfig TestData.defaultLdapDetails [ TestData.adminUser; err ]).Length 2 "error results always pass"
             }
             test "chained filters compound" {
                 let input = [ TestData.adminUser; TestData.regularUser ]

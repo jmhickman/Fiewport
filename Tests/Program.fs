@@ -13,6 +13,7 @@ module Program =
             LDAPDataHandlerTests.dataHandlerTests
             SecurityDescriptorTests.securityDescriptorTests
             ByteHandlerTests.allTests
+            SerializerTests.serializerTests
         ]
 
     [<EntryPoint>]

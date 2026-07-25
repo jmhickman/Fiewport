@@ -14,6 +14,7 @@
         <Compile Include="SecurityDescriptorTests.fs" />
         <Compile Include="TeeTests.fs" />
         <Compile Include="ByteHandlerTests.fs" />
+        <Compile Include="SerializerTests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

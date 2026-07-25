@@ -6,7 +6,7 @@ module PrettyPrinter =
     open SpectreCoff
 
 
-    let private printFormatter (map: Map<string, string list>) : TreeNode list =
+    let private printFormatter (map: LDAPEntryData) : TreeNode list =
         let keys = [for key in map.Keys do yield key]
         keys |> List.map (fun key -> node ([MCD (Color.LightCyan3, [Decoration.Bold], key); NL] |> Many) [for value in map[key] do yield node ([MC (Color.White, value)] |> Many) []])
 

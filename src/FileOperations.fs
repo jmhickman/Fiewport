@@ -23,7 +23,8 @@ module Serializer =
     ///    Thrown if there is an error accessing or writing to the disk file.
     ///</exception>
     let private fileName (result: LDAPSearchResult) =
-        $"{result.searchConfig.ldapDN}-{result.searchType}-lcache.bin"
+        let hashSuffix = result.searchConfig.GetHashCode() |> abs |> sprintf "%06X"
+        $"{result.searchConfig.ldapDN}-{result.searchType}-{hashSuffix}-lcache.bin"
 
     let serializeToDisk (results: LDAPSearchResult list) =
         results

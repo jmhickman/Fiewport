@@ -313,7 +313,7 @@ module Searcher =
     /// <summary>
     /// Connects to an AD and attempts to retrieve all self-reported server objects that lack the userAccountControl
     /// SERVER_TRUST_ACCOUNT flag set using the filter
-    /// <code>(&amp;(operatingSystem=*server*)(!(userAccountControl:1.2.840.113556.1.4.803:=8192))</code>
+    /// <code>(&(operatingSystem=*server*)(!(userAccountControl:1.2.840.113556.1.4.803:=8192))</code>
     /// User-supplied filter is appended to the end of the logical and.
     /// </summary>
     ///
@@ -349,7 +349,7 @@ module Searcher =
     ///
     /// <summary>
     /// Connects to an AD and attempts to retrieve all users with a non-null serviceprincipalname using the filter
-    /// <code>(&amp;(objectClass=user)(!objectClass=computer)(serviceprincipalname=*)</code>
+    /// <code>(&(objectClass=user)(!objectClass=computer)(serviceprincipalname=*)</code>
     /// User-supplied filter is appended to the end of the logical and.
     /// </summary>
     ///
@@ -367,7 +367,7 @@ module Searcher =
     ///
     /// <summary>
     /// Connects to an AD and attempts to retrieve all users with constrained delegation rights using the filter
-    /// <code>(&amp;(objectClass=user)(msds-allowedtodelegateto=*)</code>
+    /// <code>(&(objectClass=user)(msds-allowedtodelegateto=*)</code>
     /// User-supplied filter is appended to the end of the logical and.
     /// </summary>
     ///
@@ -385,7 +385,7 @@ module Searcher =
     ///
     /// <summary>
     /// Connects to an AD and attempts to retrieve all AS-REP roasting targets using the filter
-    /// <code>(&amp;(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))</code>
+    /// <code>(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))</code>
     /// User-supplied filter is ignored for this search.
     /// </summary>
     ///
@@ -403,7 +403,7 @@ module Searcher =
     ///
     /// <summary>
     /// Connects to an AD and attempts to retrieve all kerberoasting targets using the filter
-    /// <code>(&amp;(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(samaccounttype=805306369)))</code>
+    /// <code>(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(samaccounttype=805306369)))</code>
     /// User-supplied filter is ignored for this search.
     /// </summary>
     ///
@@ -422,7 +422,7 @@ module Searcher =
     /// <summary>
     /// Connects to an AD and attempts to retrieve the Protected Users group if it contains any members
     /// using the filter
-    /// <code>(&amp;(samaccountname=Protect*)(member=*))</code>
+    /// <code>(&(samaccountname=Protect*)(member=*))</code>
     /// User-supplied filter is ignored for this search.
     /// </summary>
     ///
@@ -441,7 +441,7 @@ module Searcher =
     /// <summary>
     /// Connects to an AD and attempts to retrieve groups whose members are in the Builtin Administrators group
     /// using the filter
-    /// <code>(&amp;(objectCategory=group)(memberOf=CN=Administrators,CN=Builtin,&lt;DC&gt;</code>
+    /// <code>(&(objectCategory=group)(memberOf=CN=Administrators,CN=Builtin,&lt;DC&gt;</code>
     /// User-supplied filter is ignored for this search.
     /// </summary>
     ///

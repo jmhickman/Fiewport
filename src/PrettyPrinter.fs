@@ -42,7 +42,7 @@ module PrettyPrinter =
                     |> Many
                     |> toConsole
             | Some err ->
-                [ MC (Color.PaleGreen3, $"[-]Search config: {msg.searchConfig.ldapHost} == {msg.searchConfig.username} == {msg.searchConfig.ldapDN}"); NL
+                [ MC (Color.PaleGreen3, $"[-]Search config: {msg.searchConfig.ldapHost} == {msg.searchConfig.ldapDN}"); NL
                   MC (Color.Red, $"[{err.context}] {err.message}") ]
                 |> Many
                 |> toConsole

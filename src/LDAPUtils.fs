@@ -35,7 +35,7 @@ module LDAPUtils =
         }
         loop [] [] |> waitTask
 
-    let internal readyLDAPSearch config =
+    let internal readyLDAPSearch (creds: LdapCredentials) (config: LdapSearchConfig) =
         let port = if config.ldapPort <> 0 then config.ldapPort else 389
         let conn =
             match config.useSsl with
@@ -51,7 +51,7 @@ module LDAPUtils =
         constraints.ReferralFollowing <- true
         conn.set_Constraints constraints
         conn.ConnectAsync(config.ldapHost, port, CancellationToken.None) |> waitTaskUnit
-        conn.BindAsync(config.username, config.password, CancellationToken.None) |> waitTaskUnit
+        conn.BindAsync(creds.username, creds.password, CancellationToken.None) |> waitTaskUnit
         conn
 
     
@@ -65,7 +65,7 @@ module LDAPUtils =
 
     
     /// Do the actual search against the configured connection
-    let internal doLDAPSearch (conn: LdapConnection) config =
+    let internal doLDAPSearch (conn: LdapConnection) (config: LdapSearchConfig) =
         let scope = scopeToInt config.scope
         let searchConstraints = new LdapSearchConstraints ()
         
@@ -114,15 +114,15 @@ module LDAPUtils =
             else
                 nonNull |> Array.map ADBytes |> List.ofArray
 
-    let internal doSearch config =
-        let conn = readyLDAPSearch config
+    let internal doSearch (creds: LdapCredentials) (config: LdapSearchConfig) =
+        let conn = readyLDAPSearch creds config
         try
             doLDAPSearch conn config
         with
             exn -> Error { message = exn.Message; context = "search" }
 
 
-    let internal createLDAPSearchResults (searchType: LDAPSearchType) config (results: Result<LdapEntry list * string list, LdapError>) =
+    let internal createLDAPSearchResults (searchType: LDAPSearchType) (config: LdapSearchConfig) (results: Result<LdapEntry list * string list, LdapError>) =
         match results with
         | Ok (entries, referrals) ->
             let ldapData =

@@ -44,7 +44,7 @@ module Filter =
     /// results of different searches to be split off for processing within that <c>Tee</c> based on the config.
     /// </summary>
     /// 
-    let byConfig config (results: LDAPSearchResult list) =
+    let byConfig (config: LdapSearchConfig) (results: LDAPSearchResult list) =
         List.filter (fun p ->
             match p.ldapSearcherError with
             | Some _ -> true

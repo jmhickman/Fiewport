@@ -27,27 +27,41 @@ module Types =
         
     
     ///
-    /// <summary>Defines a DirectorySearcher</summary>
-    /// <param name="properties">an array indicating the attributes to retain from a search.
-    /// All other attributes will be omitted, even if they are present.</param>
-    /// <param name="filter">The LDAP filter string. Not case sensitive</param>
-    /// <param name="scope">One of the three values of the enum SearchScope</param>
-    /// <param name="ldapDomain">The AD to attach to, in the form "LDAP://domain.tld" or
-    /// "LDAP://domain.tld/CN=Some,CN=Container,DC=domain,DC=tld"</param>
-    /// <param name="username">Username used to connect to the AD</param>
-    /// <param name="password">Password used to connect to the AD</param>
-    /// 
+    /// <summary>
+    /// Authentication credentials for LDAP connection.
+    /// Lives only in the connection layer — never serialized, never persisted.
+    /// </summary>
+    ///
+    type LdapCredentials =
+        { username: string
+          password: string }
+
+    ///
+    /// <summary>
+    /// Serializable LDAP search configuration — no credentials, safe to persist.
+    /// Embedded in <c>LDAPSearchResult</c> for downstream analysis of search parameters.
+    /// </summary>
+    ///
     [<MessagePackObject>]
+    type LdapSearchConfig =
+        { [<Key(0)>] properties: string array
+          [<Key(1)>] filter: string
+          [<Key(2)>] ldapDN: string
+          [<Key(3)>] scope: SearchScope
+          [<Key(4)>] ldapHost: string
+          [<Key(5)>] ldapPort: int
+          [<Key(6)>] useSsl: bool }
+
+    ///
+    /// <summary>
+    /// Public-facing config: wraps the LDAP details with credentials.
+    /// Consumed at the connection boundary; credentials are stripped before
+    /// the config enters the serializable pipeline.
+    /// </summary>
+    ///
     type SearcherConfig =
-        { [<Key(0)>]properties: string array
-          [<Key(1)>]filter: string
-          [<Key(2)>]ldapDN: string
-          [<Key(3)>]scope: SearchScope
-          [<Key(4)>]ldapHost: string
-          [<Key(5)>]ldapPort: int
-          [<Key(6)>]useSsl: bool
-          [<Key(7)>]username: string
-          [<Key(8)>]password: string }
+        { ldapDetails: LdapSearchConfig
+          credentials: LdapCredentials }
         
     ///
     /// <summary>Defines the batteries-included searches</summary> 
@@ -103,7 +117,7 @@ module Types =
     [<MessagePackObject>]
     type LDAPSearchResult =
         { [<Key(0)>]searchType: LDAPSearchType 
-          [<Key(1)>]searchConfig: SearcherConfig
+          [<Key(1)>]searchConfig: LdapSearchConfig
           [<Key(2)>]ldapSearcherError: LdapError option
           [<Key(3)>]ldapData: LDAPEntryData list
           [<Key(4)>]ldapReferrals: string list }

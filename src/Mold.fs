@@ -78,9 +78,8 @@ module Mold =
     /// <para>Example:</para>
     /// <code>[config]
     /// |> Searcher.getUsers
-    /// |> Mold.extractOccurances "ou"
-    /// |> someCustomFunction
-    /// |> ignore</code>
+    /// |> Mold.extractOccurances "ou" // A list of all values found for OUs on the domain
+    /// |> PrettyPrinter.listPrinter</code>
     /// </summary>
     ///
     let extractOccurances key results =

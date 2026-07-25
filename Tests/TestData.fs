@@ -186,3 +186,33 @@ module TestData =
           ldapSearcherError = None
           ldapData = []
           ldapReferrals = [] }
+
+    // ── GPO fixtures ─────────────────────────────────────────────────
+
+    let gpoWithSecurityExtension =
+        mkResult LDAPSearchType.GetGroupPolicyObjects defaultLdapDetails (mkMap [
+            "cn", ["{31B2F340-016D-11D2-945F-00C04FB984F9}"]
+            "displayname", ["Default Domain Policy"]
+            "gpcmachineextensionnames", ["[CSE-GUID{827D319E-6EAC-11D2-A4EA-00C04F79F83A};Security]"]
+            "gpcuserextensionnames", ["[CSE-GUID{827D319E-6EAC-11D2-A4EA-00C04F79F83A};Security]"] ])
+
+    let gpoWithMultipleExtensions =
+        mkResult LDAPSearchType.GetGroupPolicyObjects defaultLdapDetails (mkMap [
+            "cn", ["{ABC12345-6789-ABCD-EF01-234567890ABC}"]
+            "displayname", ["IT Security Policy"]
+            "gpcmachineextensionnames", [
+                "[CSE-GUID{827D319E-6EAC-11D2-A4EA-00C04F79F83A};Security]"
+                "[CSE-GUID{40B6664F-4972-11D1-A7CA-0000F87571E3};ProcessScripts]"
+                "[CSE-GUID{25537BA6-77A8-11D2-9B6C-0000F8080861};FolderRedirection]"
+                "[CSE-GUID{D76B9641-3288-4F75-942D-087DE603E3EA};AdmPwd]" ]
+            "gpcuserextensionnames", [
+                "[CSE-GUID{827D319E-6EAC-11D2-A4EA-00C04F79F83A};Security]"
+                "[CSE-GUID{40B66650-4972-11D1-A7CA-0000F87571E3};ProcessScripts]" ] ])
+
+    let gpoWithUnknownExtension =
+        mkResult LDAPSearchType.GetGroupPolicyObjects defaultLdapDetails (mkMap [
+            "cn", ["{DEADBEEF-CAFE-BABE-1234-567890ABCDEF}"]
+            "displayname", ["Custom Vendor GPO"]
+            "gpcmachineextensionnames", [
+                "[CSE-GUID{827D319E-6EAC-11D2-A4EA-00C04F79F83A};Security]"
+                "[CSE-GUID{12345678-1234-1234-1234-123456789012};UnknownExtension]" ] ])

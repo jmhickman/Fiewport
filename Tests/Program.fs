@@ -8,6 +8,7 @@ module Program =
     let allTests =
         testList "Fiewport" [
             FilterTests.filterTests
+            GPOHandlerTests.handlerTests
             MoldTests.moldTests
             TeeTests.teeTests
             LDAPDataHandlerTests.dataHandlerTests

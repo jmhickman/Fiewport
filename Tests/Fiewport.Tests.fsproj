@@ -9,6 +9,7 @@
     <ItemGroup>
         <Compile Include="TestData.fs" />
         <Compile Include="FilterTests.fs" />
+        <Compile Include="GPOHandlerTests.fs" />
         <Compile Include="LDAPDataHandlerTests.fs" />
         <Compile Include="MoldTests.fs" />
         <Compile Include="SecurityDescriptorTests.fs" />

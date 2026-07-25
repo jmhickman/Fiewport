@@ -88,6 +88,7 @@ module LDAPUtils =
         >> handleGroupType >> handleSystemFlags >> handleUserAccountControl >> handleSamAccountType
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
         >> handleTrustType >> handleTrustAttibutes >> handleTrustDirection
+        >> handleGroupPolicyCseGuids
 
     /// Extract byte values from an LDAP attribute, handling the quirks of Novell's API:
     ///

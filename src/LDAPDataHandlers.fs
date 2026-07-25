@@ -5,6 +5,8 @@ module LDAPDataHandlers =
     open System.Text
     open System.Net
     open System.Security.Cryptography.X509Certificates
+    open System.Text.RegularExpressions
+
     open Types
     open LDAPConstants
 
@@ -372,3 +374,48 @@ module LDAPDataHandlers =
              let map = map.Remove "trusttype"
              map.Add("trusttype", trustTypeList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map
+
+    /// <summary>
+    /// Resolve Group Policy Client-Side Extension (CSE) GUIDs in gPCMachineExtensionNames
+    /// and gPCUserExtensionNames attributes to human-readable names.
+    ///
+    /// Attribute format: [{CSE_GUID}{AdminTool_GUID}][{CSE_GUID}{AdminTool_GUID}]...
+    /// Each [] block pairs a CSE GUID with its Admin Tool extension GUID.
+    /// Example: [{827D319E-6EAC-11D2-A4EA-00C04F79F83A}{803E14A0-B4FB-11D0-A0D0-00A0C90F574B}]
+    ///
+    /// Output: paired format, e.g. "[Security -> Computer Restricted Groups] [EFS Recovery -> Certificates]"
+    /// Unknown GUIDs are preserved as-is.
+    /// </summary>
+    let handleGroupPolicyCseGuids (map: LDAPEntryData) : LDAPEntryData =
+
+        // Match pairs of GUIDs: {GUID}{GUID}
+        let pairPattern = Regex(@"\{([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\}\{([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\}")
+
+        let resolveGuid (guid: string) =
+            match groupPolicyCseGuids.TryGetValue (guid.ToUpperInvariant()) with
+            | true, name -> name
+            | false, _ -> $"{{{guid}}}"  // Keep original format for unknown GUIDs
+
+        let resolveValue (value: string) =
+            pairPattern.Matches(value)
+            |> Seq.cast<System.Text.RegularExpressions.Match>
+            |> Seq.map (fun m ->
+                let cseName = resolveGuid m.Groups.[1].Value
+                let adminToolName = resolveGuid m.Groups.[2].Value
+                $"[{cseName} -> {adminToolName}]")
+            |> List.ofSeq
+            |> fun resolved ->
+                if List.isEmpty resolved then value  // No pairs found, keep original
+                else String.concat " " resolved
+
+        let decider (map: LDAPEntryData) key =
+            match map.ContainsKey key with
+            | true ->
+                let values = map[key]
+                let map = map.Remove key
+                let resolved = values |> List.map resolveValue
+                map.Add(key, resolved)
+            | false -> map
+
+        ["gpcmachineextensionnames"; "gpcuserextensionnames"]
+        |> List.fold decider map

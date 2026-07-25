@@ -4,7 +4,8 @@
 
 Fiewport is a library intended for assisting pentesters with enumerating and manipulating information from Microsoft Active Directory environments.
 
-> ⚠️ Fiewport currently runs only on Windows hosts, due to limitations in Microsoft's support of LDAP authentication mechanisms on other platforms
+~~ > ⚠️ Fiewport currently runs only on Windows hosts, due to limitations in Microsoft's support of LDAP authentication mechanisms on other platforms ~~
+Fiewport now runs natively on Linux and Windows hosts, as well as optionally supporting LDAPS.
 
 ### Scripts
 
@@ -20,21 +21,24 @@ A short demonstration of Fiewport in a script might look like this:
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
 let config =
-    { properties = [||]
-      filter = ""
-      ldapDN = "DC=sevenkingdoms,DC=local"
-      scope = SearchScope.Subtree
-      ldapHost = "192.168.56.10" 
-      username = "samwell.tarly"
-      password = "Heartsbane" }
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
     
 
 [config]
@@ -53,21 +57,24 @@ For example, if you know you only cared about "name" "memberOf" and "primaryGrou
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
-let config = 
-    { properties = [|"name"; "memberOf"; "primaryGroupID"|]
-      filter = ""
-      scope = SearchScope.Subtree
-      ldapDN = "DC=northernkingdoms,DC=local"
-      ldapHost = "192.168.56.10"
-      username = "samwell.tarly"
-      password = "Heartsbane" }
+let config =
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
 
 [config]
 |> Searcher.getUsers
@@ -130,21 +137,24 @@ Expanding our previous example, lets add a `Filter` that requires the "adminCoun
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
-let config = 
-    { properties = [||]
-      filter = ""
-      scope = SearchScope.Subtree
-      ldapDN = "DC=northernkingdoms,DC=local"
-      ldapHost = "192.168.56.10"
-      username = "samwell.tarly"
-      password = "Heartsbane" }
+let config =
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
 
 [config]
 |> Searcher.getUsers
@@ -159,21 +169,24 @@ We can chain it together with another `Filter` that requires an attribute to hav
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
-let config = 
-    { properties = [||]
-      filter = ""
-      scope = SearchScope.Subtree
-      ldapDN = "DC=northernkingdoms,DC=local"
-      ldapHost = "192.168.56.10"
-      username = "samwell.tarly"
-      password = "Heartsbane" }
+let config =
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
 
 [config]
 |> Searcher.getUsers
@@ -191,21 +204,24 @@ This reduces the results to one.
 tupled list of the keys and values.
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
-let config = 
-    { properties = [||]
-      filter = ""
-      scope = SearchScope.Subtree
-      ldapDN = "DC=northernkingdoms,DC=local"
-      ldapHost = "192.168.56.10"
-      username = "samwell.tarly"
-      password = "Heartsbane" }
+let config =
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
 
 [config]
 |> Searcher.getUsers
@@ -225,21 +241,24 @@ While you can certainly chain `Filter`s together, what you get at the end is a r
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
-let config = 
-    { properties = [||]
-      filter = ""
-      scope = SearchScope.Subtree
-      ldapDN = "DC=northernkingdoms,DC=local"
-      ldapHost = "192.168.56.10"
-      username = "samwell.tarly"
-      password = "Heartsbane" }
+let config =
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
 
 [config]
 |> Searcher.getUsers
@@ -263,26 +282,30 @@ Does what it says on the tin. Formats data into something that is a bit more rea
 
 Fiewport now supports serializing and deserializing LDAP search results to/from disk using MessagePack with compression, making it quite small. For reference, the `dumpDomainObjects` call run against the smaller Game of Active Directory environment yielded a 56KB file.
 
-```#r "nuget: Fiewport"
-#r "nuget: System.DirectoryServices.Protocols"
+```fsharp
+#r "nuget: Fiewport"
+#r "nuget: Novell.Directory.Ldap.NETStandard"
 #r "nuget: EluciusFTW.SpectreCoff"
-#r "nuget: MessagePack"
+#r "nuget: MessagePack.FSharpExtensions"
 
 open Fiewport
-open System.DirectoryServices.Protocols
 
 let config =
-{ properties = [||]
-filter = ""
-scope = SearchScope.Subtree
-ldapDN = "DC=northernkingdoms,DC=local"
-ldapHost = "192.168.56.10"
-username = "samwell.tarly"
-password = "Heartsbane" }
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 389
+          useSsl = false }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
 
 [config]
 |> Searcher.getUsers
-|> Serializer.serializeToDisk // writes "DC=sevenkingdoms,DC=local-GetUsers-lcache.bin"
+|> Serializer.serializeToDisk // writes "DC=sevenkingdoms,DC=local-GetUsers-{<hexsuffix>}-lcache.bin"
 |> ignore
 ```
 
@@ -293,7 +316,7 @@ Additionally, the `Serializer` will return the results list, so more processing 
 To use the bin file, simply replace the beginning of the pipeline with the deserialize call:
 
 ```
-Serializer.deserializeFromDisk """C:\path\to\bin\DC=sevenkingdoms,DC=local-GetUsers-lcache.bin"""
+Serializer.deserializeFromDisk """C:\path\to\bin\DC=sevenkingdoms,DC=local-GetUsers-{<hexsuffix>}-lcache.bin"""
 |> Filter.valueIs "robb.stark"
 |> PrettyPrinter.print
 ```

@@ -35,22 +35,19 @@ module TestData =
         { searchType = searchType
           searchConfig = config
           ldapSearcherError = None
-          ldapData = [data]
-          ldapReferrals = [] }
+          ldapData = [data] }
 
     let mkMultiResult (searchType : LDAPSearchType) (config : LdapSearchConfig) (maps : Map<string, string list> list) =
         { searchType = searchType
           searchConfig = config
           ldapSearcherError = None
-          ldapData = maps
-          ldapReferrals = [] }
+          ldapData = maps }
 
     let mkErrorResult (config : LdapSearchConfig) (message : string) =
         { searchType = LDAPSearchType.GetUsers
           searchConfig = config
           ldapSearcherError = Some { message = message; context = "search" }
-          ldapData = [Map.empty]
-          ldapReferrals = [] }
+          ldapData = [Map.empty] }
 
     // ── User fixtures ────────────────────────────────────────────────
 
@@ -184,8 +181,7 @@ module TestData =
         { searchType = LDAPSearchType.GetDomainTrusts
           searchConfig = defaultLdapDetails
           ldapSearcherError = None
-          ldapData = []
-          ldapReferrals = [] }
+          ldapData = [] }
 
     // ── GPO fixtures ─────────────────────────────────────────────────
 

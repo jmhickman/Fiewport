@@ -78,6 +78,43 @@ let ``handles ObjectGUID missing`` () =
     let result = handleObjectGuid input
     Expect.isFalse (Map.containsKey "objectguid" result) "no objectguid added"
 
+// msds-optionalfeatureguid: Recycle Bin Feature (766ddcd8-acd0-445e-f3b9-a7f9b6744f2a)
+// .NET Guid(byte[]) reads first 3 fields little-endian, last field big-endian
+let private recycleBinGuid = hexToBytes "D8-DC-6D-76-D0-AC-5E-44-F3-B9-A7-F9-B6-74-4F-2A"
+// msds-optionalfeatureguid: Privileged Access Management (ec43e873-cce8-4640-b4ab-07ffe4ab5bcd)
+let private pamGuid = hexToBytes "73-E8-43-EC-E8-CC-40-46-B4-AB-07-FF-E4-AB-5B-CD"
+
+let ``handles msds-optionalfeatureguid single`` () =
+    let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes recycleBinGuid] ]
+    let result = handlemsdsOptionalFeatureGuid input
+    match Map.tryFind "msds-optionalfeatureguid" result with
+    | Some [ADString s] ->
+        Expect.equal s "766ddcd8-acd0-445e-f3b9-a7f9b6744f2a" "Recycle Bin GUID decoded"
+    | _ -> Expect.isTrue false "expected single GUID string"
+
+let ``handles msds-optionalfeatureguid multiple`` () =
+    let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes recycleBinGuid; ADBytes pamGuid] ]
+    let result = handlemsdsOptionalFeatureGuid input
+    match Map.tryFind "msds-optionalfeatureguid" result with
+    | Some vals ->
+        Expect.equal (List.length vals) 2 "both GUIDs decoded"
+        match vals with
+        | [ADString a; ADString b] ->
+            Expect.equal a "766ddcd8-acd0-445e-f3b9-a7f9b6744f2a" "first GUID correct"
+            Expect.equal b "ec43e873-cce8-4640-b4ab-07ffe4ab5bcd" "second GUID correct"
+        | _ -> Expect.isTrue false "expected two ADStrings"
+    | _ -> Expect.isTrue false "expected string results"
+
+let ``handles msds-optionalfeatureguid missing`` () =
+    let input = Map.ofList [ "cn", [ADString "test"] ]
+    let result = handlemsdsOptionalFeatureGuid input
+    Expect.isFalse (Map.containsKey "msds-optionalfeatureguid" result) "no key added"
+
+let ``handles msds-optionalfeatureguid non-16-byte skipped`` () =
+    let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes [| 1uy; 2uy; 3uy |]] ]
+    let result = handlemsdsOptionalFeatureGuid input
+    Expect.isFalse (Map.containsKey "msds-optionalfeatureguid" result) "malformed GUID skipped"
+
 let ``handles DNS record`` () =
     let input = Map.ofList [ "dnsrecord", [ADBytes realDnsRecord] ]
     let result = handleDNSRecord input
@@ -269,6 +306,10 @@ let allTests =
         testCase "handles SID objectsid missing" ``handles SID objectsid missing``
         testCase "handles ObjectGUID" ``handles ObjectGUID``
         testCase "handles ObjectGUID missing" ``handles ObjectGUID missing``
+        testCase "handles msds-optionalfeatureguid single" ``handles msds-optionalfeatureguid single``
+        testCase "handles msds-optionalfeatureguid multiple" ``handles msds-optionalfeatureguid multiple``
+        testCase "handles msds-optionalfeatureguid missing" ``handles msds-optionalfeatureguid missing``
+        testCase "handles msds-optionalfeatureguid non-16-byte skipped" ``handles msds-optionalfeatureguid non-16-byte skipped``
         testCase "handles DNS record" ``handles DNS record``
         testCase "handles DNS record missing" ``handles DNS record missing``
         testCase "handles DSA signature" ``handles DSA signature``

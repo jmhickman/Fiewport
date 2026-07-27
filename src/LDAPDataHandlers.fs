@@ -70,6 +70,18 @@ module LDAPDataHandlers =
             | _ -> map
         | false -> map
 
+    let internal handlemsdsOptionalFeatureGuid (map: Map<string, ADDataTypes list>) =
+        match map.ContainsKey "msds-optionalfeatureguid" with
+        | true ->
+            let guidBytes = map["msds-optionalfeatureguid"]
+            let map = map.Remove "msds-optionalfeatureguid"
+            let decoded =
+                guidBytes
+                |> List.choose (function ADBytes b when Array.length b = 16 -> Some (sprintf "%O" (Guid(b)) |> ADString) | _ -> None)
+            if List.isEmpty decoded then map
+            else map.Add("msds-optionalfeatureguid", decoded)
+        | false -> map
+
         
     let internal handleLogonHours (map: Map<string, ADDataTypes list>) =
         let decider bytes =

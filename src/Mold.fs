@@ -78,7 +78,7 @@ module Mold =
     /// <para>Example:</para>
     /// <code>[config]
     /// |> Searcher.getUsers
-    /// |> Mold.extractOccurances "ou" // A list of all values found for OUs on the domain
+    /// |> Mold.extractOccurances "primarygroupid" // A list of all values found for primary group id in the results
     /// |> PrettyPrinter.listPrinter</code>
     /// </summary>
     ///
@@ -87,5 +87,5 @@ module Mold =
         |> List.collect (fun result ->
             result.ldapData
             |> List.collect (fun map ->
-                Map.tryFind key map
+                map |> Map.tryFind key 
                 |> Option.defaultValue []))

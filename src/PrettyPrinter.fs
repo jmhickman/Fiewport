@@ -25,13 +25,6 @@ module PrettyPrinter =
                 lastSearch <- msg.searchType.ToString ()
                 MCD (Color.PaleGreen3, [Decoration.Underline], $"======= Search: {msg.searchType} =======") |> toConsole
 
-            match List.isEmpty msg.ldapReferrals with 
-            | true -> ()
-            | false ->            
-                let refNodes = msg.ldapReferrals |> List.map (fun r -> node ([MC (Color.Yellow1, r)] |> Many) [])
-                tree (V "[!] Referrals encountered") refNodes |> fun t -> t.Expanded <- true; t |> toOutputPayload
-                |> ignore
-
             match msg.ldapSearcherError with
             | None ->
                 match data.Length = 0 with

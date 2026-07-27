@@ -425,4 +425,6 @@ module LDAPConstants =
             // CP (gptext.dll)
             "FBF687E6-F063-4D9F-9F4F-FD9A26ACDD5F", "CP (gptext.dll)"
         ]
-        
+
+    let regexGUIDPattern = 
+        @"\{([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\}\{([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\}"

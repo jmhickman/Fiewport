@@ -119,8 +119,7 @@ module Types =
         { [<Key(0)>]searchType: LDAPSearchType 
           [<Key(1)>]searchConfig: LdapSearchConfig
           [<Key(2)>]ldapSearcherError: LdapError option
-          [<Key(3)>]ldapData: LDAPEntryData list
-          [<Key(4)>]ldapReferrals: string list }
+          [<Key(3)>]ldapData: LDAPEntryData list }
 
     
     ///

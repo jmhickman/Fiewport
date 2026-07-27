@@ -70,6 +70,7 @@ module LDAPDataHandlers =
             | _ -> map
         | false -> map
 
+
     let internal handlemsdsOptionalFeatureGuid (map: Map<string, ADDataTypes list>) =
         match map.ContainsKey "msds-optionalfeatureguid" with
         | true ->
@@ -128,23 +129,24 @@ module LDAPDataHandlers =
             | _ -> map
         | false -> map
 
-    
+
+    /// Decode a single X.509 certificate into issuer, subject, and public key strings.
+    /// Certificates stored in AD are guaranteed to be syntactically valid — if parsing fails,
+    /// the AD itself is corrupted, so we fail loudly rather than swallow the error.
+    let private decodeCert (b: byte[]) =
+        let cert = X509CertificateLoader.LoadCertificate b
+        let issuer = sprintf "Issuer: %s" cert.Issuer
+        let subject = sprintf "Subject: %s" cert.Subject
+        let pubKey = sprintf "PubKey: 0x%s" (cert.GetPublicKey () |> BitConverter.ToString |> String.filter (fun c -> c <> '-'))
+        cert.Dispose ()
+        [ADString issuer; ADString subject; ADString pubKey]
+
+
     let internal handleUserCertificate (map: Map<string, ADDataTypes list>) =
-        let stripDashes (s: string) = String.filter (fun c -> c <> '-') s
-        
         match map.ContainsKey "usercertificate" with
         | true ->
             let certBytes = map["usercertificate"]
             let map = map.Remove "usercertificate"
-            let decodeCert (b: byte[]) =
-                try
-                    let cert = X509CertificateLoader.LoadCertificate b
-                    let issuer = sprintf "Issuer: %s" cert.Issuer
-                    let subject = sprintf "Subject: %s" cert.Subject
-                    let pubKey = sprintf "PubKey: 0x%s" (cert.GetPublicKey () |> BitConverter.ToString |> stripDashes)
-                    cert.Dispose ()
-                    [ADString issuer; ADString subject; ADString pubKey]
-                with _ -> []
             let strings = certBytes |> List.collect (function ADBytes b -> decodeCert b | _ -> [])
             if List.isEmpty strings then map
             else map.Add("usercertificate", strings)
@@ -155,9 +157,10 @@ module LDAPDataHandlers =
         match map.ContainsKey "dsasignature" with
         | true ->
             let value = map["dsasignature"] |> List.head
-            let h = match value with
-                    | ADBytes b -> b |> BitConverter.ToString |> _.Replace("-", "") |> ADString
-                    | _ -> ""  |> ADString
+            let h = 
+                match value with
+                | ADBytes b -> b |> BitConverter.ToString |> _.Replace("-", "") |> ADString
+                | _ -> ""  |> ADString
             let map = map.Remove "dsasignature"
             map.Add("dsasignature", [h])
         | false -> map
@@ -268,8 +271,8 @@ module LDAPDataHandlers =
         [ "whenchanged"
           "whencreated"
           "dscorepropagationdata" ]
-        |> List.fold decider map
- 
+        |> List.fold decider map 
+
 
     let handleGroupType (map: LDAPEntryData) : LDAPEntryData =
         match map.ContainsKey "grouptype" with
@@ -285,7 +288,7 @@ module LDAPDataHandlers =
         | true ->
             let value = map["systemflags"] |> List.head
             let map = map.Remove "systemflags"
-            map.Add("systemflags", systemFlagsList |> List.filter (fun p -> (int value &&& int p) = int p) |> List.map _.ToString())
+            map.Add("systemflags", systemFlagsList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
         | false -> map
 
 
@@ -307,7 +310,7 @@ module LDAPDataHandlers =
              let value = map["samaccounttype"] |> List.head |> int
              let map = map.Remove "samaccounttype"
              // SAMAccountType values are not pure bitmasks — find the most specific match
-             let matches = sAMAccountTypesList |> List.filter (fun p -> (value &&& int p) = int p)
+             let matches = sAMAccountTypesList |> List.filter (fun p -> value &&& int p = int p)
              // Prefer the most specific (highest value that matches)
              let result = if List.length matches > 1 then [List.max matches] else matches
              map.Add("samaccounttype", result |> List.map _.ToString())
@@ -353,8 +356,8 @@ module LDAPDataHandlers =
              let map = map.Remove "instancetype"
              map.Add("instancetype", instanceTypesList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map
-         
-         
+
+        
     let handleRepSto (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "repsto" with
          | true -> map.Remove "repsto"
@@ -368,8 +371,8 @@ module LDAPDataHandlers =
              let map = map.Remove "trustattributes"
              map.Add("trustattributes", trustAttributesList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map
-         
-         
+
+        
     let handleTrustDirection (map: LDAPEntryData) : LDAPEntryData =
          match map.ContainsKey "trustdirection" with
          | true ->
@@ -387,38 +390,32 @@ module LDAPDataHandlers =
              map.Add("trusttype", trustTypeList |> List.filter (fun p -> int value &&& int p = int p) |> List.map _.ToString())
          | false -> map
 
-    /// <summary>
-    /// Resolve Group Policy Client-Side Extension (CSE) GUIDs in gPCMachineExtensionNames
-    /// and gPCUserExtensionNames attributes to human-readable names.
+
     ///
     /// Attribute format: [{CSE_GUID}{AdminTool_GUID}][{CSE_GUID}{AdminTool_GUID}]...
     /// Each [] block pairs a CSE GUID with its Admin Tool extension GUID.
     /// Example: [{827D319E-6EAC-11D2-A4EA-00C04F79F83A}{803E14A0-B4FB-11D0-A0D0-00A0C90F574B}]
-    ///
-    /// Output: paired format, e.g. "[Security -> Computer Restricted Groups] [EFS Recovery -> Certificates]"
-    /// Unknown GUIDs are preserved as-is.
-    /// </summary>
+    /// 
     let handleGroupPolicyCseGuids (map: LDAPEntryData) : LDAPEntryData =
-
-        // Match pairs of GUIDs: {GUID}{GUID}
-        let pairPattern = Regex(@"\{([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\}\{([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\}")
+        let pairPattern = Regex regexGUIDPattern
 
         let resolveGuid (guid: string) =
             match groupPolicyCseGuids.TryGetValue (guid.ToUpperInvariant()) with
             | true, name -> name
-            | false, _ -> $"{{{guid}}}"  // Keep original format for unknown GUIDs
+            | false, _ -> $"{{{guid}}}"  // Keep original if unknown
 
-        let resolveValue (value: string) =
-            pairPattern.Matches(value)
-            |> Seq.cast<System.Text.RegularExpressions.Match>
-            |> Seq.map (fun m ->
+        let extractPairs (value: string) =
+            pairPattern.Matches value
+            |> Seq.map (fun (m: RegularExpressions.Match) ->
                 let cseName = resolveGuid m.Groups.[1].Value
                 let adminToolName = resolveGuid m.Groups.[2].Value
                 $"[{cseName} -> {adminToolName}]")
             |> List.ofSeq
-            |> fun resolved ->
-                if List.isEmpty resolved then value  // No pairs found, keep original
-                else String.concat " " resolved
+
+        let resolveValue (value: string) =
+            match extractPairs value with
+            | [] -> value  // No pairs found, keep original
+            | resolved -> String.concat " " resolved
 
         let decider (map: LDAPEntryData) key =
             match map.ContainsKey key with

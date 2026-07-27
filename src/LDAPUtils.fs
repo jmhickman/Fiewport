@@ -64,18 +64,31 @@ module LDAPUtils =
         new LdapControl("1.2.840.113556.1.4.801", true, sdFlags)
 
     
-    /// Do the actual search against the configured connection
+    /// Use Novell's built-in paged results extension to retrieve all entries,
+    /// automatically handling server size limits through LDAP Paged Results Control.
+    /// SD flag control is attached via SearchConstraints so security descriptors are returned.
     let internal doLDAPSearch (conn: LdapConnection) (config: LdapSearchConfig) =
         let scope = scopeToInt config.scope
+
+        // Build search constraints with SD flag control
         let searchConstraints = new LdapSearchConstraints ()
-        
         searchConstraints.ReferralFollowing <- true
         searchConstraints.SetControls [|createSDFlagControl ()|]
-        let results = 
-            conn.SearchAsync(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints, CancellationToken.None) 
-            |> waitTask
-        
-        gatherEntries results
+
+        // SearchOptions carries the constraints through to each paged request
+        let options =
+            new SearchOptions(
+                config.ldapDN, scope, config.filter, config.properties,
+                false, searchConstraints)
+
+        // SearchUsingSimplePagingAsync handles paging internally —
+        // sends the paged results request control, follows cookies, collects all entries.
+        // Returns a List<LdapEntry>.
+        SimplePagedResultsControlSearchExtensions.SearchUsingSimplePagingAsync(
+            conn, options, 1000, CancellationToken.None)
+        |> waitTask
+        |> List.ofSeq
+        |> fun entries -> (entries, []) |> Ok
 
 
     let private runByteHandlers =

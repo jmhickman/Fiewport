@@ -12,17 +12,27 @@ module LDAPUtils =
     let private waitTask<'T> (t: Task<'T>) = t.GetAwaiter().GetResult()
     let private waitTaskUnit (t: Task) = t.GetAwaiter().GetResult()
 
+
+    /// Resolve the port from the config — callers must set `ldapPort` explicitly.
+    let private resolvePort (config: LdapSearchConfig) =
+        config.ldapPort
+
+
+    /// Create an SSL-enabled connection with certificate validation bypassed.
+    let private createSslConnection () =
+        new LdapConnectionOptions ()
+        |> fun opts -> opts.UseSsl ()
+        |> fun opts -> opts.ConfigureRemoteCertificateValidationCallback(fun _ _ _ _ -> true)
+        |> fun opts -> new LdapConnection(opts)
+        
+
+    /// Build an LdapConnection, configure referral following, connect, and bind.
     let internal readyLDAPSearch (creds: LdapCredentials) (config: LdapSearchConfig) =
-        let port = if config.ldapPort <> 0 then config.ldapPort else 389
+        let port = resolvePort config
         let conn =
             match config.useSsl with
-            | true ->
-                new LdapConnectionOptions ()
-                |> fun opts -> opts.UseSsl ()
-                |> fun opts -> opts.ConfigureRemoteCertificateValidationCallback(fun _ _ _ _ -> true)
-                |> fun opts -> new LdapConnection(opts)
-            | false ->
-                new LdapConnection ()
+            | true  -> createSslConnection ()
+            | false -> new LdapConnection ()
 
         let constraints = new LdapConstraints ()
         constraints.ReferralFollowing <- true
@@ -30,8 +40,8 @@ module LDAPUtils =
         conn.ConnectAsync(config.ldapHost, port, CancellationToken.None) |> waitTaskUnit
         conn.BindAsync(creds.username, creds.password, CancellationToken.None) |> waitTaskUnit
         conn
-
     
+
     /// Ask for SecurityDescriptors, otherwise they won't be supplied
     let private createSDFlagControl () =
         // LDAP_SERVER_SD_FLAGS_OID: 1.2.840.113556.1.4.801
@@ -39,8 +49,8 @@ module LDAPUtils =
         // SACL(8) omitted — requires SeSecurityPrivilege
         let sdFlags = [| 48uy; 3uy; 2uy; 1uy; 7uy |]
         new LdapControl("1.2.840.113556.1.4.801", true, sdFlags)
-
     
+
     /// Use Novell's built-in paged results extension to retrieve all entries,
     /// automatically handling server size limits through LDAP Paged Results Control.
     /// SD flag control is attached via SearchConstraints so security descriptors are returned.
@@ -75,12 +85,14 @@ module LDAPUtils =
         >> handlemsdfsrReplicationGroupGuid >> handlemsdsOptionalFeatureGuid >> handleUserCertificate >> handleLogonHours >> handleDSASignature
         >> handleBigEndianIntegers
 
+
     let private runStringHandlers =
         handleGenericStrings >> handleThingsWithTicks >> handleThingsWithTimespans >> handleThingsWithZulus
         >> handleGroupType >> handleSystemFlags >> handleUserAccountControl >> handleSamAccountType
         >> handlemsdsSupportedEncryptionType >> handleWellKnownThings >> handleInstanceType >> handleRepSto
         >> handleTrustType >> handleTrustAttibutes >> handleTrustDirection
         >> handleGroupPolicyCseGuids
+
 
     /// Extract byte values from an LDAP attribute, handling the quirks of Novell's API:
     ///
@@ -106,6 +118,7 @@ module LDAPUtils =
                 | b -> [ADBytes b]
             else
                 nonNull |> Array.map ADBytes |> List.ofArray
+
 
     let internal doSearch (creds: LdapCredentials) (config: LdapSearchConfig) =
         let conn = readyLDAPSearch creds config

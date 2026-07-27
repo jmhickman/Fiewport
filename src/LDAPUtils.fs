@@ -8,32 +8,9 @@ module LDAPUtils =
     open Types
     open LDAPDataHandlers
 
-    let private scopeToInt s =
-        match s with
-        | Base -> LdapConnection.ScopeBase
-        | OneLevel -> LdapConnection.ScopeOne
-        | Subtree -> LdapConnection.ScopeSub
 
     let private waitTask<'T> (t: Task<'T>) = t.GetAwaiter().GetResult()
     let private waitTaskUnit (t: Task) = t.GetAwaiter().GetResult()
-
-    let private gatherEntries (results: ILdapSearchResults) =
-        let rec loop acc referrals = task {
-            let! more = results.HasMoreAsync ()
-            if more then
-                try
-                    let! entry = results.NextAsync ()
-                    return! loop (entry :: acc) referrals
-                with
-                | :? LdapReferralException as ex ->
-                    let refs = ex.GetReferrals () |> List.ofArray
-                    return (List.rev acc, refs) |> Ok
-                | ex ->
-                    return { message = $"LDAP iteration error: {ex.Message}"; context = "iterate" } |> Error
-            else
-            return (List.rev acc, referrals) |> Ok
-        }
-        loop [] [] |> waitTask
 
     let internal readyLDAPSearch (creds: LdapCredentials) (config: LdapSearchConfig) =
         let port = if config.ldapPort <> 0 then config.ldapPort else 389
@@ -68,7 +45,11 @@ module LDAPUtils =
     /// automatically handling server size limits through LDAP Paged Results Control.
     /// SD flag control is attached via SearchConstraints so security descriptors are returned.
     let internal doLDAPSearch (conn: LdapConnection) (config: LdapSearchConfig) =
-        let scope = scopeToInt config.scope
+        let scope = 
+            match config.scope with
+            | Base -> LdapConnection.ScopeBase
+            | OneLevel -> LdapConnection.ScopeOne
+            | Subtree -> LdapConnection.ScopeSub
 
         // Build search constraints with SD flag control
         let searchConstraints = new LdapSearchConstraints ()
@@ -77,9 +58,7 @@ module LDAPUtils =
 
         // SearchOptions carries the constraints through to each paged request
         let options =
-            new SearchOptions(
-                config.ldapDN, scope, config.filter, config.properties,
-                false, searchConstraints)
+            new SearchOptions(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints)
 
         // SearchUsingSimplePagingAsync handles paging internally —
         // sends the paged results request control, follows cookies, collects all entries.
@@ -88,12 +67,12 @@ module LDAPUtils =
             conn, options, 1000, CancellationToken.None)
         |> waitTask
         |> List.ofSeq
-        |> fun entries -> (entries, []) |> Ok
+        |> Ok
 
 
     let private runByteHandlers =
         handleNtSecurityDescriptor >> handleObjectSid >> handleDNSRecord >> handleSecurityIdentifier >> handleObjectGuid
-        >> handlemsdfsrReplicationGroupGuid >> handleUserCertificate >> handleLogonHours >> handleDSASignature
+        >> handlemsdfsrReplicationGroupGuid >> handlemsdsOptionalFeatureGuid >> handleUserCertificate >> handleLogonHours >> handleDSASignature
         >> handleBigEndianIntegers
 
     let private runStringHandlers =
@@ -136,9 +115,9 @@ module LDAPUtils =
             exn -> Error { message = exn.Message; context = "search" }
 
 
-    let internal createLDAPSearchResults (searchType: LDAPSearchType) (config: LdapSearchConfig) (results: Result<LdapEntry list * string list, LdapError>) =
+    let internal createLDAPSearchResults (searchType: LDAPSearchType) (config: LdapSearchConfig) (results: Result<LdapEntry list, LdapError>) =
         match results with
-        | Ok (entries, referrals) ->
+        | Ok entries ->
             let ldapData =
                 entries
                 |> List.map (fun entry ->
@@ -157,12 +136,10 @@ module LDAPUtils =
             { searchType = searchType
               searchConfig = config
               ldapSearcherError = None
-              ldapData = ldapData
-              ldapReferrals = referrals }
+              ldapData = ldapData }
 
         | Error err ->
             { searchType = searchType
               searchConfig = config
               ldapSearcherError = Some err
-              ldapData = [Map.empty]
-              ldapReferrals = [] }
+              ldapData = [Map.empty] }

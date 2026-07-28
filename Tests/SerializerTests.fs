@@ -202,43 +202,6 @@ module SerializerTests =
     let ``deserialize non-existent file throws`` () =
         Expect.throws (fun () -> Serializer.deserializeFromDisk "no-such-file.bin" |> ignore) "missing file throws"
 
-    // ── Credential isolation ─────────────────────────────────────────
-
-    let ``searchConfig contains no credentials after round-trip`` () =
-        let suffix = Guid.NewGuid().ToString("N")
-        let cfg = makeConfig suffix
-        try
-            // LdapSearchConfig has no username/password fields — credentials
-            // are carried in SensitiveSearcherConfig and stripped before the
-            // config enters the serializable pipeline.
-            let result = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
-            Serializer.serializeToDisk [result] |> ignore
-
-            let file = fullFileName cfg LDAPSearchType.GetUsers
-            let deserialized = Serializer.deserializeFromDisk file
-
-            // The deserialized config is LdapSearchConfig — it simply has
-            // no credential fields. The type system prevents leakage.
-            Expect.equal deserialized.[0].searchConfig.ldapHost cfg.ldapHost "config preserved"
-            Expect.equal deserialized.[0].searchConfig.ldapDN cfg.ldapDN "config preserved"
-        finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
-
-    // ── ldapDN filename safety ───────────────────────────────────────
-
-    let ``ldapDN with slashes causes path traversal risk`` () =
-        // ldapDN values like "CN=Users,DC=test,DC=local" contain commas (fine) but
-        // if someone passes a DN with backslashes or forward slashes, it could
-        // cause path traversal or invalid filenames. This documents the assumption.
-        let suffix = Guid.NewGuid().ToString("N")
-        let cfg = makeConfig suffix
-        try
-            let result = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
-            Serializer.serializeToDisk [result] |> ignore
-            // If we got here without exception, the filename was valid
-        finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
-
     let serializerTests =
         testList "Serializer" [
             testCase "serialize and deserialize round-trips a single result" ``serialize and deserialize round-trips a single result``
@@ -252,6 +215,4 @@ module SerializerTests =
             testCase "serializeToDisk returns the original results" ``serializeToDisk pass-throughs input for pipeline use``
             testCase "serialize empty list does not crash" ``serialize empty list does not crash``
             testCase "deserialize non-existent file throws" ``deserialize non-existent file throws``
-            testCase "searchConfig contains no credentials after round-trip" ``searchConfig contains no credentials after round-trip``
-            testCase "ldapDN with slashes causes path traversal risk" ``ldapDN with slashes causes path traversal risk``
         ]

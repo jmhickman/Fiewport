@@ -90,7 +90,9 @@ module SecurityDescriptor =
                 | true -> acc + 16
                 | false -> acc
             let extraBytes =
-                0 |> addGuidIfPresent aceObjectTypePresent |> addGuidIfPresent aceInheritedObjectTypePresent
+                0 
+                |> addGuidIfPresent aceObjectTypePresent 
+                |> addGuidIfPresent aceInheritedObjectTypePresent
             aceFlagsOffset + 4 + extraBytes
         | _ ->
             curOffset + 8

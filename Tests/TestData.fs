@@ -166,9 +166,9 @@ module TestData =
 
     let multipleUsers =
         mkMultiResult LDAPSearchType.GetUsers defaultLdapDetails 
-        [ mkMap ["cn", ["User1"]; "sAMAccountName", ["user1"]; "useraccountcontrol", ["512"]]
-          mkMap ["cn", ["User2"]; "sAMAccountName", ["user2"]; "useraccountcontrol", ["512"]]
-          mkMap ["cn", ["User3"]; "sAMAccountName", ["user3"]; "useraccountcontrol", ["514"]] ]
+          [ mkMap ["cn", ["User1"]; "sAMAccountName", ["user1"]; "useraccountcontrol", ["512"]]
+            mkMap ["cn", ["User2"]; "sAMAccountName", ["user2"]; "useraccountcontrol", ["512"]]
+            mkMap ["cn", ["User3"]; "sAMAccountName", ["user3"]; "useraccountcontrol", ["514"]] ]
 
     let multipleGroups =
         mkMultiResult LDAPSearchType.GetGroups defaultLdapDetails 

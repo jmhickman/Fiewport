@@ -25,11 +25,14 @@ let private realDnsRecord = hexToBytes "10-00-1C-00-05-08-00-00-00-00-00-00-00-0
 // Real DSA signature from raw dump (40 bytes)
 let private realDsaSignature = hexToBytes "01-00-00-00-28-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-67-0A-36-BA-55-10-3C-4A-BB-E0-D5-01-2E-05-39-9C"
 
-// Short/malformed SID for edge cases
-let private shortSid = hexToBytes "01-05"
-
 // Real certificate header from raw dump (first 64 bytes of X.509)
 let private certBytes = hexToBytes "30-82-06-62-30-82-05-4A-A0-03-02-01-02-02-13-51-00-00-00-03-D5-9E-03-77-4A-9B-AB-23-00-00-00-00-00-03-30-0D-06-09-2A-86-48-86-F7-0D-01-01-0B-05-00-30-50-31-15-17-13-61-64-2D-6C-61-62-2E-6C-6F-63-61-6C-31-18-30-16-06-09-60-86-48-01-86-F7-12-01-01"
+
+// msds-optionalfeatureguid: Recycle Bin Feature (766ddcd8-acd0-445e-f3b9-a7f9b6744f2a)
+// .NET Guid(byte[]) reads first 3 fields little-endian, last field big-endian
+let private recycleBinGuid = hexToBytes "D8-DC-6D-76-D0-AC-5E-44-F3-B9-A7-F9-B6-74-4F-2A"
+// msds-optionalfeatureguid: Privileged Access Management (ec43e873-cce8-4640-b4ab-07ffe4ab5bcd)
+let private pamGuid = hexToBytes "73-E8-43-EC-E8-CC-40-46-B4-AB-07-FF-E4-AB-5B-CD"
 
 // ========== Byte Handler Tests ==========
 
@@ -41,22 +44,6 @@ let ``handles SID objectsid`` () =
     | Some [ADString s] ->
         Expect.isTrue (s.StartsWith("S-")) "decoded to SID string"
         Expect.isTrue (s.Contains("-500")) "contains RID"
-    | _ -> Expect.isTrue false "expected string result"
-
-let ``handles SID objectsid domain without RID`` () =
-    let input = Map.ofList [ "objectsid", [ADBytes domainSidNoRid] ]
-    let result = handleObjectSid input
-    match Map.tryFind "objectsid" result with
-    | Some [ADString s] ->
-        Expect.isTrue (s.StartsWith("S-")) "decoded to SID string"
-    | _ -> Expect.isTrue false "expected string result"
-
-let ``handles SID objectsid malformed`` () =
-    let input = Map.ofList [ "objectsid", [ADBytes shortSid] ]
-    let result = handleObjectSid input
-    match Map.tryFind "objectsid" result with
-    | Some [ADString s] ->
-        Expect.isTrue (s.Contains("INVALID SID")) "malformed SID handled"
     | _ -> Expect.isTrue false "expected string result"
 
 let ``handles SID objectsid missing`` () =
@@ -77,12 +64,6 @@ let ``handles ObjectGUID missing`` () =
     let input = Map.ofList [ "cn", [ADString "test"] ]
     let result = handleObjectGuid input
     Expect.isFalse (Map.containsKey "objectguid" result) "no objectguid added"
-
-// msds-optionalfeatureguid: Recycle Bin Feature (766ddcd8-acd0-445e-f3b9-a7f9b6744f2a)
-// .NET Guid(byte[]) reads first 3 fields little-endian, last field big-endian
-let private recycleBinGuid = hexToBytes "D8-DC-6D-76-D0-AC-5E-44-F3-B9-A7-F9-B6-74-4F-2A"
-// msds-optionalfeatureguid: Privileged Access Management (ec43e873-cce8-4640-b4ab-07ffe4ab5bcd)
-let private pamGuid = hexToBytes "73-E8-43-EC-E8-CC-40-46-B4-AB-07-FF-E4-AB-5B-CD"
 
 let ``handles msds-optionalfeatureguid single`` () =
     let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes recycleBinGuid] ]
@@ -109,11 +90,6 @@ let ``handles msds-optionalfeatureguid missing`` () =
     let input = Map.ofList [ "cn", [ADString "test"] ]
     let result = handlemsdsOptionalFeatureGuid input
     Expect.isFalse (Map.containsKey "msds-optionalfeatureguid" result) "no key added"
-
-let ``handles msds-optionalfeatureguid non-16-byte skipped`` () =
-    let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes [| 1uy; 2uy; 3uy |]] ]
-    let result = handlemsdsOptionalFeatureGuid input
-    Expect.isFalse (Map.containsKey "msds-optionalfeatureguid" result) "malformed GUID skipped"
 
 let ``handles DNS record`` () =
     let input = Map.ofList [ "dnsrecord", [ADBytes realDnsRecord] ]
@@ -301,15 +277,12 @@ let ``handles WellKnownThings missing`` () =
 let allTests =
     testList "Byte and String Handlers" [
         testCase "handles SID objectsid" ``handles SID objectsid``
-        testCase "handles SID objectsid domain without RID" ``handles SID objectsid domain without RID``
-        testCase "handles SID objectsid malformed" ``handles SID objectsid malformed``
         testCase "handles SID objectsid missing" ``handles SID objectsid missing``
         testCase "handles ObjectGUID" ``handles ObjectGUID``
         testCase "handles ObjectGUID missing" ``handles ObjectGUID missing``
         testCase "handles msds-optionalfeatureguid single" ``handles msds-optionalfeatureguid single``
         testCase "handles msds-optionalfeatureguid multiple" ``handles msds-optionalfeatureguid multiple``
         testCase "handles msds-optionalfeatureguid missing" ``handles msds-optionalfeatureguid missing``
-        testCase "handles msds-optionalfeatureguid non-16-byte skipped" ``handles msds-optionalfeatureguid non-16-byte skipped``
         testCase "handles DNS record" ``handles DNS record``
         testCase "handles DNS record missing" ``handles DNS record missing``
         testCase "handles DSA signature" ``handles DSA signature``

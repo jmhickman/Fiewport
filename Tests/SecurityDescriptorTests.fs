@@ -59,9 +59,9 @@ module SecurityDescriptorTests =
         let guidSize, objFlags, guidSegments =
             match aceParams.objectType, aceParams.inheritedObjectType with
             | Some ot, Some it' -> 32, 0x03, [ot; it']
-            | None, None       ->  0, 0x00, []
-            | Some ot, None    -> 16, 0x01, [ot]
-            | None, Some it'   -> 16, 0x02, [it']
+            | None, None ->  0, 0x00, []
+            | Some ot, None -> 16, 0x01, [ot]
+            | None, Some it' -> 16, 0x02, [it']
 
         let aceSize = 8 + 4 + guidSize + Array.length sid
         let bytes = Array.zeroCreate<byte> aceSize
@@ -213,4 +213,4 @@ module SecurityDescriptorTests =
                   let sd = buildSecurityDescriptor (Some acl)
                   let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                   Expect.equal (List.length result) 1 "should have 1 ACE entry"
-                  Expect.stringContains (List.head result) "Self" "should resolve Self" } ]
+                  Expect.stringContains (List.head result) "Self" "should resolve Self" }]

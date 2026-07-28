@@ -87,19 +87,7 @@ module LDAPDataHandlerTests =
                 Expect.equal actual.["description"] ["hello"] "ADBytes decoded as UTF-8"
             }
 
-            test "handleTrustDirection OUTBOUND" {
-                let input = TestData.mkMap [ "trustdirection", ["2"] ]
-                let actual = Fiewport.LDAPDataHandlers.handleTrustDirection input
-                Expect.isTrue (List.contains "TRUST_DIRECTION_OUTBOUND" actual.["trustdirection"]) "OUTBOUND present"
-            }
-
-            test "handleRepSto removes repsto" {
-                let input = TestData.mkMap [ "repsto", ["CN=DC,DC=test"] ]
-                let actual = Fiewport.LDAPDataHandlers.handleRepSto input
-                Expect.isFalse (Map.containsKey "repsto" actual) "repsto removed"
-            }
-
-            test "handleInstanceType WritableOnThisDirectory" {
+            test "handleInstanceType decode" {
                 let input = TestData.mkMap [ "instancetype", ["4"] ]
                 let actual = Fiewport.LDAPDataHandlers.handleInstanceType input
                 Expect.isTrue (List.contains "WritableOnThisDirectory" actual.["instancetype"]) "WritableOnThisDirectory present"

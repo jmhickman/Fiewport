@@ -7,7 +7,7 @@ module FilterTests =
 
     let filterTests =
         testList "Filter" [
-            test "attributePresent filters inner maps" {
+            test "attributePresent filters correctly" {
                 let input = [ TestData.adminUser; TestData.regularUser ]
                 let actual = Filter.attributePresent "adminCount" input
                 Expect.equal actual.Length 2 "Outer list preserved"

@@ -156,3 +156,10 @@ module Types =
           aceCount: int
           aclStart: int
           permissions: string list }
+
+    type internal AceParseContext = 
+        { bytes: byte array
+          curOffset: int
+          aceSize: int
+          sidOffset: int
+          sidSize: int }

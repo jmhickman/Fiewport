@@ -5,6 +5,7 @@ module LDAPUtils =
     open Novell.Directory.Ldap
     open System.Threading
     open System.Threading.Tasks
+    
     open Types
     open LDAPDataHandlers
 
@@ -51,9 +52,10 @@ module LDAPUtils =
         new LdapControl("1.2.840.113556.1.4.801", true, sdFlags)
     
 
-    /// Use Novell's built-in paged results extension to retrieve all entries,
+    ///
+    /// Use Novell's paged results extension to retrieve all entries,
     /// automatically handling server size limits through LDAP Paged Results Control.
-    /// SD flag control is attached via SearchConstraints so security descriptors are returned.
+    /// 
     let internal doLDAPSearch (conn: LdapConnection) (config: LdapSearchConfig) =
         let scope = 
             match config.scope with
@@ -61,18 +63,14 @@ module LDAPUtils =
             | OneLevel -> LdapConnection.ScopeOne
             | Subtree -> LdapConnection.ScopeSub
 
-        // Build search constraints with SD flag control
         let searchConstraints = new LdapSearchConstraints ()
         searchConstraints.ReferralFollowing <- true
         searchConstraints.SetControls [|createSDFlagControl ()|]
 
-        // SearchOptions carries the constraints through to each paged request
         let options =
             new SearchOptions(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints)
 
-        // SearchUsingSimplePagingAsync handles paging internally —
-        // sends the paged results request control, follows cookies, collects all entries.
-        // Returns a List<LdapEntry>.
+
         SimplePagedResultsControlSearchExtensions.SearchUsingSimplePagingAsync(
             conn, options, 1000, CancellationToken.None)
         |> waitTask
@@ -135,7 +133,7 @@ module LDAPUtils =
                 entries
                 |> List.map (fun entry ->
                     let attrSet = entry.GetAttributeSet ()
-                    let names = attrSet.Keys :> seq<string>
+                    let names = attrSet.Keys
                     names
                     |> Seq.map (fun name -> name, extractAttributeValues attrSet.[name])
                     |> Seq.toList

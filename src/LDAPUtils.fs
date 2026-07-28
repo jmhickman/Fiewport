@@ -53,29 +53,65 @@ module LDAPUtils =
     
 
     ///
-    /// Use Novell's paged results extension to retrieve all entries,
-    /// automatically handling server size limits through LDAP Paged Results Control.
+    /// Use manual paged results to retrieve all entries while preserving
+    /// the SD flag control. The Novell extension method (SearchUsingSimplePagingAsync)
+    /// creates a new LdapSearchConstraints internally, which drops our SD flag control.
+    /// By paging manually we keep both controls active on every request.
     /// 
-    let internal doLDAPSearch (conn: LdapConnection) (config: LdapSearchConfig) =
+    let internal doLDAPSearch (conn: LdapConnection) config =
         let scope = 
             match config.scope with
             | Base -> LdapConnection.ScopeBase
             | OneLevel -> LdapConnection.ScopeOne
             | Subtree -> LdapConnection.ScopeSub
 
-        let searchConstraints = new LdapSearchConstraints ()
-        searchConstraints.ReferralFollowing <- true
-        searchConstraints.SetControls [|createSDFlagControl ()|]
+        let sdControl = createSDFlagControl ()
+        // Paged results control OID: 1.2.840.113556.1.4.319
+        let pageSize = 1000
 
-        let options =
-            new SearchOptions(config.ldapDN, scope, config.filter, config.properties, false, searchConstraints)
+        let rec loop cookie acc =
+            let pagedControl = new Controls.SimplePagedResultsControl(pageSize, cookie)
 
+            let searchConstraints = new LdapSearchConstraints ()
+            searchConstraints.ReferralFollowing <- true
+            searchConstraints.SetControls [| sdControl; pagedControl |]
 
-        SimplePagedResultsControlSearchExtensions.SearchUsingSimplePagingAsync(
-            conn, options, 1000, CancellationToken.None)
-        |> waitTask
-        |> List.ofSeq
-        |> Ok
+            let results =
+                conn.SearchAsync(
+                    config.ldapDN, scope, config.filter,
+                    config.properties, false,
+                    searchConstraints, CancellationToken.None)
+                |> waitTask
+
+            // Collect entries from current page
+            let entries =
+                let rec collect acc' =
+                    match results.HasMoreAsync() |> waitTask with
+                    | false -> List.rev acc'
+                    | true ->
+                        let entry = results.NextAsync() |> waitTask
+                        collect (entry :: acc')
+                collect []
+
+            // Extract response cookie from server controls. The server echoes back
+            // the paged results control with a cookie for the next page, or an
+            // empty cookie to signal completion.
+            let nextCookie =
+                match results.ResponseControls with
+                | arr ->
+                    arr
+                    |> Array.tryPick (function
+                        | :? Controls.SimplePagedResultsControl as c -> Some c.Cookie
+                        | _ -> None)
+                    |> Option.defaultValue null
+                | _ -> null
+
+            match nextCookie with
+            | x when x = null || x |> Array.isEmpty  -> entries @ acc
+            | next ->
+                loop next (entries @ acc)
+
+        loop null []
 
 
     let private runByteHandlers =
@@ -118,21 +154,21 @@ module LDAPUtils =
                 nonNull |> Array.map ADBytes |> List.ofArray
 
 
-    let internal doSearch (creds: LdapCredentials) (config: LdapSearchConfig) =
+    let internal doSearch creds config =
         let conn = readyLDAPSearch creds config
         try
-            doLDAPSearch conn config
+            doLDAPSearch conn config |> Ok
         with
             exn -> Error { message = exn.Message; context = "search" }
 
 
-    let internal createLDAPSearchResults (searchType: LDAPSearchType) (config: LdapSearchConfig) (results: Result<LdapEntry list, LdapError>) =
+    let internal createLDAPSearchResults searchType config (results: Result<LdapEntry list, LdapError>) =
         match results with
         | Ok entries ->
             let ldapData =
                 entries
                 |> List.map (fun entry ->
-                    let attrSet = entry.GetAttributeSet ()
+                    let attrSet = entry.GetAttributeSet()
                     let names = attrSet.Keys
                     names
                     |> Seq.map (fun name -> name, extractAttributeValues attrSet.[name])

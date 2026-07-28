@@ -62,7 +62,7 @@ module PrettyPrinter =
     /// </code>
     /// </summary>
     /// 
-    let print (results: LDAPSearchResult list) = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate 
+    let print results = // TODO Enable verbosity toggle to suppress ntsecuritydescriptor and usercertificate 
         results |> List.iter (fun r -> pPrinter.PostAndReply (fun reply -> r, reply) )
 
 
@@ -72,7 +72,7 @@ module PrettyPrinter =
     /// library, use this. This function is used with <c>Tee</c> to provide console output.
     /// </summary>
     /// 
-    let teePrint (results: LDAPSearchResult list) =
+    let teePrint results =
         results |> List.iter (fun result -> pPrinter.PostAndReply (fun reply -> result, reply))
 
 
@@ -97,7 +97,7 @@ module PrettyPrinter =
     /// |> PrettyPrinter.listPrinter "Distinguished Names"
     /// </code>
     /// </summary>
-    let listPrinter label (inputList: string list) =
+    let listPrinter label inputList =
         MCD (Color.PaleGreen3, [Decoration.Underline], $"======= {label} =======") |> toConsole
         let nodes = inputList |> List.map (fun s -> node ([MC (Color.White, s)] |> Many) [])
         tree (V $"[{inputList.Length}] {label}") nodes |> fun t -> t.Expanded <- true; t |> toOutputPayload

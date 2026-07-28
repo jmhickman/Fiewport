@@ -94,22 +94,18 @@ module LDAPUtils =
                 collect []
 
             // Extract response cookie from server controls. The server echoes back
-            // the paged results control with a cookie for the next page, or an
-            // empty cookie to signal completion.
-            let nextCookie =
-                match results.ResponseControls with
-                | arr ->
-                    arr
-                    |> Array.tryPick (function
-                        | :? Controls.SimplePagedResultsControl as c -> Some c.Cookie
-                        | _ -> None)
-                    |> Option.defaultValue null
-                | _ -> null
-
-            match nextCookie with
-            | x when x = null || x |> Array.isEmpty  -> entries @ acc
-            | next ->
-                loop next (entries @ acc)
+            // The server echoes back the paged results control with a cookie for
+            // the next page, or an empty cookie to signal completion.
+            match
+                results.ResponseControls
+                |> Option.ofObj
+                |> Option.bind (Array.tryPick (function
+                        | :? Controls.SimplePagedResultsControl as c -> c.Cookie |> Some
+                        | _ -> None))
+                |> Option.filter (not << Array.isEmpty)
+            with
+            | Some next -> loop next (entries @ acc)
+            | None -> entries @ acc
 
         loop null []
 

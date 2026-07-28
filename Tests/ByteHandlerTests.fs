@@ -40,6 +40,7 @@ let ``handles SID objectsid`` () =
     let input = Map.ofList [ "objectsid", [ADBytes userSidBytes] ]
     let result = handleObjectSid input
     Expect.isTrue (Map.containsKey "objectsid" result) "objectsid key preserved"
+    
     match Map.tryFind "objectsid" result with
     | Some [ADString s] ->
         Expect.isTrue (s.StartsWith("S-")) "decoded to SID string"
@@ -54,6 +55,7 @@ let ``handles SID objectsid missing`` () =
 let ``handles ObjectGUID`` () =
     let input = Map.ofList [ "objectguid", [ADBytes realObjectGuid] ]
     let result = handleObjectGuid input
+    
     match Map.tryFind "objectguid" result with
     | Some [ADString s] ->
         Expect.equal s.Length 36 "GUID format (36 chars)"
@@ -68,6 +70,7 @@ let ``handles ObjectGUID missing`` () =
 let ``handles msds-optionalfeatureguid single`` () =
     let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes recycleBinGuid] ]
     let result = handlemsdsOptionalFeatureGuid input
+    
     match Map.tryFind "msds-optionalfeatureguid" result with
     | Some [ADString s] ->
         Expect.equal s "766ddcd8-acd0-445e-f3b9-a7f9b6744f2a" "Recycle Bin GUID decoded"
@@ -76,9 +79,11 @@ let ``handles msds-optionalfeatureguid single`` () =
 let ``handles msds-optionalfeatureguid multiple`` () =
     let input = Map.ofList [ "msds-optionalfeatureguid", [ADBytes recycleBinGuid; ADBytes pamGuid] ]
     let result = handlemsdsOptionalFeatureGuid input
+    
     match Map.tryFind "msds-optionalfeatureguid" result with
     | Some vals ->
         Expect.equal (List.length vals) 2 "both GUIDs decoded"
+        
         match vals with
         | [ADString a; ADString b] ->
             Expect.equal a "766ddcd8-acd0-445e-f3b9-a7f9b6744f2a" "first GUID correct"
@@ -95,6 +100,7 @@ let ``handles DNS record`` () =
     let input = Map.ofList [ "dnsrecord", [ADBytes realDnsRecord] ]
     let result = handleDNSRecord input
     Expect.isTrue (Map.containsKey "dnsrecord" result) "dnsrecord preserved"
+    
     match Map.tryFind "dnsrecord" result with
     | Some [ADString s] ->
         Expect.isTrue (s.Length > 0) "decoded to non-empty string"
@@ -108,6 +114,7 @@ let ``handles DNS record missing`` () =
 let ``handles DSA signature`` () =
     let input = Map.ofList [ "dsasignature", [ADBytes realDsaSignature] ]
     let result = handleDSASignature input
+    
     match Map.tryFind "dsasignature" result with
     | Some [ADString s] ->
         Expect.isTrue (s.Length > 0) "decoded to non-empty string"
@@ -124,9 +131,11 @@ let ``handles UserCertificate`` () =
     let input = Map.ofList [ "usercertificate", [ADBytes cert] ]
     let result = handleUserCertificate input
     // Handler returns 3 strings per cert: Issuer, Subject, PubKey
+    
     match Map.tryFind "usercertificate" result with
     | Some vals ->
         Expect.equal (List.length vals) 3 "decoded to 3 strings (issuer, subject, pubkey)"
+        
         match List.head vals with
         | ADString s -> Expect.isTrue (s.Length > 0) "decoded to non-empty string"
         | _ -> Expect.isTrue false "expected ADString"
@@ -142,9 +151,11 @@ let ``handles NTSecurityDescriptor`` () =
     let sdBytes = hexToBytes "01-00-04-84-98-09-00-00-A8-09-00-00-00-00-00-00-14-00-00-00-04-00-84-09-36-00-00-00-01-00-14-00-02-00-00-00-01-01-00-00-00-00-00-01-00-00-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-00-42-16-4C-C0-20-D0-11-A7-68-00-AA-00-6E-05-29-14-CC-28-48-37-14-BC-45-9B-07-AD-6F-01-5E-5F-28-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-00-42-16-4C-C0-20-D0-11-A7-68-00-AA-00-6E-05-29-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-10-20-20-5F-A5-79-D0-11-90-20-00-C0-4F-C2-D4-CF-14-CC-28-48-37-14-BC-45-9B-07-AD-6F-01-5E-5F-28-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-10-20-20-5F-A5-79-D0-11-90-20-00-C0-4F-C2-D4-CF-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-40-C2-0A-BC-A9-79-D0-11-90-20-00-C0-4F-C2-D4-CF-14-CC-28-48-37-14-BC-45-9B-07-AD-6F-01-5E-5F-28-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-40-C2-0A-BC-A9-79-D0-11-90-20-00-C0-4F-C2-D4-CF-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-42-2F-BA-59-A2-79-D0-11-90-20-00-C0-4F-C2-D3-CF-14-CC-28-48-37-14-BC-45-9B-07-AD-6F-01-5E-5F-28-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-42-2F-BA-59-A2-79-D0-11-90-20-00-C0-4F-C2-D3-CF-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-F8-88-70-03-E1-0A-D2-11-B4-22-00-A0-C9-68-F9-39-14-CC-28-48-37-14-BC-45-9B-07-AD-6F-01-5E-5F-28-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-3C-00-10-00-00-00-03-00-00-00-F8-88-70-03-E1-0A-D2-11-B4-22-00-A0-C9-68-F9-39-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-00-38-00-00-01-00-00-01-00-00-00-18-7E-0F-3E-7A-2C-10-4C-BA-82-4D-92-6D-B9-9A-3E-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-0A-02-00-00-05-00-38-00-00-01-00-00-01-00-00-00-AA-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-F2-01-00-00-05-00-38-00-00-01-00-00-01-00-00-00-AD-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-04-02-00-00-05-02-38-00-30-00-00-00-01-00-00-00-0F-D6-47-5B-90-60-B2-40-9F-37-2A-4D-E8-8F-30-63-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-0E-02-00-00-05-02-38-00-30-00-00-00-01-00-00-00-0F-D6-47-5B-90-60-B2-40-9F-37-2A-4D-E8-8F-30-63-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-0F-02-00-00-05-0A-38-00-08-00-00-00-03-00-00-00-A6-6D-02-9B-3C-0D-5C-46-8B-EE-51-99-D7-16-5C-BA-86-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-01-00-00-00-00-00-03-00-00-00-00-05-0A-38-00-08-00-00-00-03-00-00-00-A6-6D-02-9B-3C-0D-5C-46-8B-EE-51-99-D7-16-5C-BA-86-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-01-00-00-00-00-00-05-0A-00-00-00-05-0A-38-00-10-00-00-00-03-00-00-00-6D-9E-C6-B7-C7-2C-D2-11-85-4E-00-A0-C9-83-F6-08-86-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-01-00-00-00-00-00-05-09-00-00-00-05-0A-38-00-10-00-00-00-03-00-00-00-6D-9E-C6-B7-C7-2C-D2-11-85-4E-00-A0-C9-83-F6-08-9C-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-01-00-00-00-00-00-05-09-00-00-00-05-0A-38-00-10-00-00-00-03-00-00-00-6D-9E-C6-B7-C7-2C-D2-11-85-4E-00-A0-C9-83-F6-08-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-01-00-00-00-00-00-05-09-00-00-00-05-0A-38-00-20-00-00-00-03-00-00-00-93-7B-1B-EA-48-5E-D5-46-BC-6C-4D-F4-FD-A7-8A-35-86-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-01-00-00-00-00-00-05-0A-00-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-76-5B-E9-89-4D-44-62-4C-99-1A-0F-AC-BE-DA-64-0C-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-AA-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-AB-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-AC-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-AD-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-AE-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-05-00-2C-00-00-01-00-00-01-00-00-00-C9-6D-A3-E2-17-AE-C3-47-B5-8B-BE-34-C5-5B-A6-33-01-02-00-00-00-00-00-05-20-00-00-00-2D-02-00-00-05-00-2C-00-10-00-00-00-01-00-00-00-60-73-40-C7-BF-20-D0-11-A7-68-00-AA-00-6E-05-29-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-00-2C-00-10-00-00-00-01-00-00-00-D0-9F-11-B8-F6-04-62-47-AB-7A-49-86-C7-6B-3F-9A-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-2C-00-94-00-02-00-02-00-00-00-14-CC-28-48-37-14-BC-45-9B-07-AD-6F-01-5E-5F-28-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-2C-00-94-00-02-00-02-00-00-00-9C-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-0A-2C-00-94-00-02-00-02-00-00-00-BA-7A-96-BF-E6-0D-D0-11-A2-85-00-AA-00-30-49-E2-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-05-00-28-00-00-01-00-00-01-00-00-00-5E-4C-C7-05-EB-4D-B4-43-BD-9F-86-66-4C-2A-7F-D5-01-01-00-00-00-00-00-05-0B-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-76-5B-E9-89-4D-44-62-4C-99-1A-0F-AC-BE-DA-64-0C-01-01-00-00-00-00-00-05-09-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-7D-DC-C2-CC-AD-A6-7A-4A-88-46-C0-4E-3C-C5-35-01-01-01-00-00-00-00-00-05-0B-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-9C-36-0F-28-C7-67-8E-43-AE-98-1D-46-F3-C6-F5-41-01-01-00-00-00-00-00-05-0B-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-AA-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-01-00-00-00-00-00-05-09-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-AB-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-01-00-00-00-00-00-05-09-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-AC-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-01-00-00-00-00-00-05-09-00-00-00-05-00-28-00-00-01-00-00-01-00-00-00-AE-F6-31-11-07-9C-D1-11-F7-9F-00-C0-4F-C2-DC-D2-01-01-00-00-00-00-00-05-09-00-00-00-05-00-28-00-10-00-00-00-01-00-00-00-D0-9F-11-B8-F6-04-62-47-AB-7A-49-86-C7-6B-3F-9A-01-01-00-00-00-00-00-05-0B-00-00-00-05-03-28-00-30-00-00-00-01-00-00-00-E5-C3-78-3F-9A-F7-BD-46-A0-B8-9D-18-11-6D-DC-79-01-01-00-00-00-00-00-05-0A-00-00-00-05-0A-28-00-30-01-00-00-01-00-00-00-DE-47-E6-91-6F-D9-70-4B-95-57-D6-3F-F4-F3-CC-D8-01-01-00-00-00-00-00-05-0A-00-00-00-00-00-24-00-BD-01-0E-00-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-00-02-00-00-00-02-24-00-FF-01-0F-00-01-05-00-00-00-00-00-05-15-00-00-00-40-B2-8A-45-26-CC-AE-5A-B2-3F-35-E8-07-02-00-00-00-00-18-00-10-00-02-00-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-00-02-18-00-04-00-00-00-01-02-00-00-00-00-00-05-20-00-00-00-2A-02-00-00-00-02-18-00-BD-01-0F-00-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-00-00-14-00-10-00-00-00-01-01-00-00-00-00-00-01-00-00-00-00-00-00-14-00-94-00-02-00-01-01-00-00-00-00-00-05-09-00-00-00-00-00-14-00-94-00-02-00-01-01-00-00-00-00-00-05-0B-00-00-00-00-00-14-00-FF-01-0F-00-01-01-00-00-00-00-00-05-12-00-00-00-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00-01-02-00-00-00-00-00-05-20-00-00-00-20-02-00-00"
     let input = Map.ofList [ "ntsecuritydescriptor", [ADBytes sdBytes] ]
     let result = handleNtSecurityDescriptor input
+    
     match Map.tryFind "ntsecuritydescriptor" result with
     | Some vals ->
         Expect.isTrue (List.length vals > 0) "decoded to non-empty list"
+        
         match List.head vals with
         | ADString s -> Expect.isTrue (s.Length > 0) "decoded to non-empty string"
         | _ -> Expect.isTrue false "expected ADString"
@@ -161,6 +172,7 @@ let ``multiple DNS records handled`` () =
     let dns2 = hexToBytes "10-00-1C-00-05-08-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-20-01-05-00-00-2F-00-00-00-00-00-00-00-00-00-0F"
     let input = Map.ofList [ "dnsrecord", [ADBytes dns1; ADBytes dns2] ]
     let result = handleDNSRecord input
+    
     match Map.tryFind "dnsrecord" result with
     | Some vals ->
         Expect.equal (List.length vals) 2 "both records preserved"
@@ -179,6 +191,7 @@ let ``byte handlers preserve other keys`` () =
 let ``handles SamAccountType user`` () =
     let input = Map.ofList [ "samaccounttype", ["805306368"] ]
     let result = handleSamAccountType input
+    
     match Map.tryFind "samaccounttype" result with
     | Some vals ->
         Expect.isTrue ((List.head vals).Contains("NORMAL_ACCOUNT")) "identifies user account"
@@ -188,6 +201,7 @@ let ``handles SamAccountType group`` () =
     // 268435456 = 0x10000000 = SAM_GROUP_OBJECT (not SAM_ALIAS_OBJECT)
     let input = Map.ofList [ "samaccounttype", ["268435456"] ]
     let result = handleSamAccountType input
+    
     match Map.tryFind "samaccounttype" result with
     | Some vals ->
         Expect.isTrue ((List.head vals).Contains("SAM_GROUP_OBJECT")) "identifies group"
@@ -202,6 +216,7 @@ let ``handles SystemFlags`` () =
     // Real value from raw dump: -1946157056 (0x8C000000) = CANNOT_BE_DELETED | CANNOT_BE_MOVED | CANNOT_BE_RENAMED
     let input = Map.ofList [ "systemflags", ["-1946157056"] ]
     let result = handleSystemFlags input
+    
     match Map.tryFind "systemflags" result with
     | Some vals ->
         Expect.isTrue (List.exists (fun (s: string) -> s.Contains("CANNOT_BE_DELETED")) vals) "identifies CANNOT_BE_DELETED flag"
@@ -215,6 +230,7 @@ let ``handles SystemFlags missing`` () =
 let ``handles TrustDirection OUTBOUND`` () =
     let input = Map.ofList [ "trustdirection", ["2"] ]
     let result = handleTrustDirection input
+    
     match Map.tryFind "trustdirection" result with
     | Some vals ->
         Expect.equal (List.head vals) "TRUST_DIRECTION_OUTBOUND" "correct direction"
@@ -223,6 +239,7 @@ let ``handles TrustDirection OUTBOUND`` () =
 let ``handles TrustDirection INBOUND`` () =
     let input = Map.ofList [ "trustdirection", ["1"] ]
     let result = handleTrustDirection input
+    
     match Map.tryFind "trustdirection" result with
     | Some vals ->
         Expect.equal (List.head vals) "TRUST_DIRECTION_INBOUND" "correct direction"
@@ -236,6 +253,7 @@ let ``handles TrustDirection missing`` () =
 let ``handles TrustType WINDOWS`` () =
     let input = Map.ofList [ "trusttype", ["2"] ]
     let result = handleTrustType input
+    
     match Map.tryFind "trusttype" result with
     | Some vals ->
         Expect.equal (List.head vals) "TRUST_TYPE_UPLEVEL" "correct type"
@@ -249,6 +267,7 @@ let ``handles TrustType missing`` () =
 let ``handles TrustAttributes NON_TRANSITIVE`` () =
     let input = Map.ofList [ "trustattributes", ["1"] ]
     let result = handleTrustAttibutes input
+    
     match Map.tryFind "trustattributes" result with
     | Some vals ->
         Expect.equal (List.head vals) "TRUST_ATTRIBUTE_NON_TRANSITIVE" "correct attribute"
@@ -264,6 +283,7 @@ let ``handles WellKnownThings`` () =
     let wellKnown = "B:32:6227F0AF-1FC2-410D-8E3B-B10615BB5B0F:CN=NTDS Quotas,DC=ad-lab,DC=local"
     let input = Map.ofList [ "wellknownobjects", [wellKnown] ]
     let result = handleWellKnownThings input
+    
     match Map.tryFind "wellknownobjects" result with
     | Some vals ->
         Expect.isTrue ((List.head vals).Contains("NTDS Quotas")) "decoded well-known object"
@@ -275,36 +295,35 @@ let ``handles WellKnownThings missing`` () =
     Expect.isFalse (Map.containsKey "wellknownobjects" result) "no wellknownobjects added"
 
 let allTests =
-    testList "Byte and String Handlers" [
-        testCase "handles SID objectsid" ``handles SID objectsid``
-        testCase "handles SID objectsid missing" ``handles SID objectsid missing``
-        testCase "handles ObjectGUID" ``handles ObjectGUID``
-        testCase "handles ObjectGUID missing" ``handles ObjectGUID missing``
-        testCase "handles msds-optionalfeatureguid single" ``handles msds-optionalfeatureguid single``
-        testCase "handles msds-optionalfeatureguid multiple" ``handles msds-optionalfeatureguid multiple``
-        testCase "handles msds-optionalfeatureguid missing" ``handles msds-optionalfeatureguid missing``
-        testCase "handles DNS record" ``handles DNS record``
-        testCase "handles DNS record missing" ``handles DNS record missing``
-        testCase "handles DSA signature" ``handles DSA signature``
-        testCase "handles DSA signature missing" ``handles DSA signature missing``
-        testCase "handles UserCertificate" ``handles UserCertificate``
-        testCase "handles UserCertificate missing" ``handles UserCertificate missing``
-        testCase "handles NTSecurityDescriptor" ``handles NTSecurityDescriptor``
-        testCase "handles NTSecurityDescriptor missing" ``handles NTSecurityDescriptor missing``
-        testCase "multiple DNS records handled" ``multiple DNS records handled``
-        testCase "byte handlers preserve other keys" ``byte handlers preserve other keys``
-        testCase "handles SamAccountType user" ``handles SamAccountType user``
-        testCase "handles SamAccountType group" ``handles SamAccountType group``
-        testCase "handles SamAccountType missing" ``handles SamAccountType missing``
-        testCase "handles SystemFlags" ``handles SystemFlags``
-        testCase "handles SystemFlags missing" ``handles SystemFlags missing``
-        testCase "handles TrustDirection OUTBOUND" ``handles TrustDirection OUTBOUND``
-        testCase "handles TrustDirection INBOUND" ``handles TrustDirection INBOUND``
-        testCase "handles TrustDirection missing" ``handles TrustDirection missing``
-        testCase "handles TrustType WINDOWS" ``handles TrustType WINDOWS``
-        testCase "handles TrustType missing" ``handles TrustType missing``
-        testCase "handles TrustAttributes NON_TRANSITIVE" ``handles TrustAttributes NON_TRANSITIVE``
-        testCase "handles TrustAttributes missing" ``handles TrustAttributes missing``
-        testCase "handles WellKnownThings" ``handles WellKnownThings``
-        testCase "handles WellKnownThings missing" ``handles WellKnownThings missing``
-    ]
+    testList "Byte and String Handlers" 
+        [ testCase "handles SID objectsid" ``handles SID objectsid``
+          testCase "handles SID objectsid missing" ``handles SID objectsid missing``
+          testCase "handles ObjectGUID" ``handles ObjectGUID``
+          testCase "handles ObjectGUID missing" ``handles ObjectGUID missing``
+          testCase "handles msds-optionalfeatureguid single" ``handles msds-optionalfeatureguid single``
+          testCase "handles msds-optionalfeatureguid multiple" ``handles msds-optionalfeatureguid multiple``
+          testCase "handles msds-optionalfeatureguid missing" ``handles msds-optionalfeatureguid missing``
+          testCase "handles DNS record" ``handles DNS record``
+          testCase "handles DNS record missing" ``handles DNS record missing``
+          testCase "handles DSA signature" ``handles DSA signature``
+          testCase "handles DSA signature missing" ``handles DSA signature missing``
+          testCase "handles UserCertificate" ``handles UserCertificate``
+          testCase "handles UserCertificate missing" ``handles UserCertificate missing``
+          testCase "handles NTSecurityDescriptor" ``handles NTSecurityDescriptor``
+          testCase "handles NTSecurityDescriptor missing" ``handles NTSecurityDescriptor missing``
+          testCase "multiple DNS records handled" ``multiple DNS records handled``
+          testCase "byte handlers preserve other keys" ``byte handlers preserve other keys``
+          testCase "handles SamAccountType user" ``handles SamAccountType user``
+          testCase "handles SamAccountType group" ``handles SamAccountType group``
+          testCase "handles SamAccountType missing" ``handles SamAccountType missing``
+          testCase "handles SystemFlags" ``handles SystemFlags``
+          testCase "handles SystemFlags missing" ``handles SystemFlags missing``
+          testCase "handles TrustDirection OUTBOUND" ``handles TrustDirection OUTBOUND``
+          testCase "handles TrustDirection INBOUND" ``handles TrustDirection INBOUND``
+          testCase "handles TrustDirection missing" ``handles TrustDirection missing``
+          testCase "handles TrustType WINDOWS" ``handles TrustType WINDOWS``
+          testCase "handles TrustType missing" ``handles TrustType missing``
+          testCase "handles TrustAttributes NON_TRANSITIVE" ``handles TrustAttributes NON_TRANSITIVE``
+          testCase "handles TrustAttributes missing" ``handles TrustAttributes missing``
+          testCase "handles WellKnownThings" ``handles WellKnownThings``
+          testCase "handles WellKnownThings missing" ``handles WellKnownThings missing`` ]

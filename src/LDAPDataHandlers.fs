@@ -130,9 +130,6 @@ module LDAPDataHandlers =
         | false -> map
 
 
-    /// Decode a single X.509 certificate into issuer, subject, and public key strings.
-    /// Certificates stored in AD are guaranteed to be syntactically valid — if parsing fails,
-    /// the AD itself is corrupted, so we fail loudly rather than swallow the error.
     let private decodeCert (b: byte[]) =
         let cert = X509CertificateLoader.LoadCertificate b
         let issuer = sprintf "Issuer: %s" cert.Issuer

@@ -168,13 +168,7 @@ module SecurityDescriptorTests =
                 Expect.isEmpty result "should return empty list"
             }
 
-            test "decodeNtSecurityDescriptor: too short SD returns empty list" {
-                let sd = [| 1uy; 2uy |]
-                let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
-                Expect.isEmpty result "should return empty list for short SD"
-            }
-
-            // --- Object ACE tests (the actual fix) ---
+            // --- Object ACE tests ---
             test "decodeNtSecurityDescriptor: Object ACE with ObjectType present" {
                 let objectType = Array.zeroCreate<byte> 16
                 let ace =

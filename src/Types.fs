@@ -142,24 +142,3 @@ module Types =
     type MoldAction<'T> = 'T -> unit
 
 
-    ///
-    /// <summary>
-    /// Pipeline record for NT Security Descriptor decoding.
-    /// Each pipeline stage updates the record with its contribution;
-    /// the <c>valid</c> flag short-circuits the pipeline on failure.
-    /// </summary>
-    ///
-    type internal SecurityDescriptorContext =
-        { bytes: byte array
-          valid: bool
-          daclOffset: int
-          aceCount: int
-          aclStart: int
-          permissions: string list }
-
-    type internal AceParseContext = 
-        { bytes: byte array
-          curOffset: int
-          aceSize: int
-          sidOffset: int
-          sidSize: int }

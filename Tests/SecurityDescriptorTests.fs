@@ -117,28 +117,23 @@ module SecurityDescriptorTests =
             // --- SID decoding tests ---
             test "decodeSidFromBytes: Local System S-1-5-18" {
                 let sid = sidLocalSystem |> SecurityDescriptor.decodeSidFromBytes
-                Expect.equal sid "S-1-5-18" "should decode to S-1-5-18"
-            }
+                Expect.equal sid "S-1-5-18" "should decode to S-1-5-18" }
 
             test "decodeSidFromBytes: Authenticated Users S-1-5-11" {
                 let sid = sidAuthUsers |> SecurityDescriptor.decodeSidFromBytes
-                Expect.equal sid "S-1-5-11" "should decode to S-1-5-11"
-            }
+                Expect.equal sid "S-1-5-11" "should decode to S-1-5-11" }
 
             test "decodeSidFromBytes: Administrators S-1-5-32-544" {
                 let sid = sidAdmins |> SecurityDescriptor.decodeSidFromBytes
-                Expect.equal sid "S-1-5-32-544" "should decode to S-1-5-32-544"
-            }
+                Expect.equal sid "S-1-5-32-544" "should decode to S-1-5-32-544" }
 
             test "decodeSidFromBytes: Everyone S-1-1" {
                 let sid = sidEveryone |> SecurityDescriptor.decodeSidFromBytes
-                Expect.equal sid "S-1-1" "should decode to S-1-1"
-            }
+                Expect.equal sid "S-1-1" "should decode to S-1-1" }
 
             test "decodeSidFromBytes: too short returns INVALID SID" {
                 let sid = [| 1uy; 1uy |] |> SecurityDescriptor.decodeSidFromBytes
-                Expect.equal sid "INVALID SID" "should return INVALID SID for short bytes"
-            }
+                Expect.equal sid "INVALID SID" "should return INVALID SID for short bytes" }
 
             // --- Standard ACE tests ---
             test "decodeNtSecurityDescriptor: single standard ACE" {
@@ -147,8 +142,7 @@ module SecurityDescriptorTests =
                 let sd = buildSecurityDescriptor (Some acl)
                 let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                 Expect.equal (List.length result) 1 "should have 1 ACE entry"
-                Expect.stringContains (List.head result) "Local System" "should resolve Local System"
-            }
+                Expect.stringContains (List.head result) "Local System" "should resolve Local System" }
 
             test "decodeNtSecurityDescriptor: multiple standard ACEs" {
                 let ace1 = buildStandardAce 0x0013019F sidLocalSystem
@@ -159,14 +153,12 @@ module SecurityDescriptorTests =
                 Expect.equal (List.length result) 2 "should have 2 ACE entries"
                 // Result is reversed (cons-to-front), so head is last ACE
                 Expect.stringContains (List.head result) "Authenticated Users" "last ACE is Authenticated Users"
-                Expect.stringContains (List.last result) "Local System" "first ACE is Local System"
-            }
+                Expect.stringContains (List.last result) "Local System" "first ACE is Local System" }
 
             test "decodeNtSecurityDescriptor: empty DACL returns empty list" {
                 let sd = buildSecurityDescriptor None
                 let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
-                Expect.isEmpty result "should return empty list"
-            }
+                Expect.isEmpty result "should return empty list" }
 
             // --- Object ACE tests ---
             test "decodeNtSecurityDescriptor: Object ACE with ObjectType present" {
@@ -179,8 +171,7 @@ module SecurityDescriptorTests =
                 let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                 Expect.equal (List.length result) 1 "should have 1 ACE entry"
                 Expect.stringContains (List.head result) "World" "should resolve S-1-1 to World"
-                Expect.stringContains (List.head result) "ExtendedRight" "should contain ExtendedRight"
-            }
+                Expect.stringContains (List.head result) "ExtendedRight" "should contain ExtendedRight" }
 
             test "decodeNtSecurityDescriptor: Object ACE with both GUIDs present" {
                 let objectType = Array.zeroCreate<byte> 16
@@ -192,8 +183,7 @@ module SecurityDescriptorTests =
                 let sd = buildSecurityDescriptor (Some acl)
                 let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                 Expect.equal (List.length result) 1 "should have 1 ACE entry"
-                Expect.stringContains (List.head result) "Self" "should resolve Self"
-            }
+                Expect.stringContains (List.head result) "Self" "should resolve Self" }
 
             test "decodeNtSecurityDescriptor: mixed standard and Object ACEs" {
                 let ace1 = buildStandardAce 0x0013019F sidLocalSystem
@@ -215,8 +205,7 @@ module SecurityDescriptorTests =
                 Expect.stringContains (List.item 1 result) "World" "ACE 4: S-1-1 resolved to World"
                 Expect.stringContains (List.item 2 result) "Administrator" "ACE 3: Administrators"
                 Expect.stringContains (List.item 3 result) "Authenticated Users" "ACE 2: Authenticated Users"
-                Expect.stringContains (List.item 4 result) "Local System" "ACE 1 (last): Local System"
-            }
+                Expect.stringContains (List.item 4 result) "Local System" "ACE 1 (last): Local System" }
 
             test "decodeNtSecurityDescriptor: Object ACE without GUIDs" {
                 let ace =
@@ -226,6 +215,4 @@ module SecurityDescriptorTests =
                 let sd = buildSecurityDescriptor (Some acl)
                 let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                 Expect.equal (List.length result) 1 "should have 1 ACE entry"
-                Expect.stringContains (List.head result) "Self" "should resolve Self"
-            }
-        ]
+                Expect.stringContains (List.head result) "Self" "should resolve Self" } ]

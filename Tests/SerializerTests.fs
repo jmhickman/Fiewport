@@ -214,5 +214,4 @@ module SerializerTests =
             testCase "different ldapHost produces separate files" ``different ldapHost produces separate files``
             testCase "serializeToDisk returns the original results" ``serializeToDisk pass-throughs input for pipeline use``
             testCase "serialize empty list does not crash" ``serialize empty list does not crash``
-            testCase "deserialize non-existent file throws" ``deserialize non-existent file throws``
-        ]
+            testCase "deserialize non-existent file throws" ``deserialize non-existent file throws`` ]

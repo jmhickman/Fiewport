@@ -83,6 +83,19 @@ module LDAPDataHandlers =
             else map.Add("msds-optionalfeatureguid", decoded)
         | false -> map
 
+
+    let internal handleInvocationId (map: Map<string, ADDataTypes list>) =
+        match map.ContainsKey "invocationid" with
+        | true ->
+            let guidBytes = map["invocationid"]
+            let map = map.Remove "invocationid"
+            let decoded =
+                guidBytes
+                |> List.choose (function ADBytes b when Array.length b = 16 -> Some (sprintf "%O" (Guid(b)) |> ADString) | _ -> None)
+            if List.isEmpty decoded then map
+            else map.Add("invocationid", decoded)
+        | false -> map
+
         
     let internal handleLogonHours (map: Map<string, ADDataTypes list>) =
         let decider bytes =

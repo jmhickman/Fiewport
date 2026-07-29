@@ -112,7 +112,7 @@ module LDAPUtils =
 
     let private runByteHandlers =
         handleNtSecurityDescriptor >> handleObjectSid >> handleDNSRecord >> handleSecurityIdentifier >> handleObjectGuid
-        >> handlemsdfsrReplicationGroupGuid >> handlemsdsOptionalFeatureGuid >> handleUserCertificate >> handleLogonHours >> handleDSASignature
+        >> handlemsdfsrReplicationGroupGuid >> handlemsdsOptionalFeatureGuid >> handleInvocationId >> handleUserCertificate >> handleLogonHours >> handleDSASignature
         >> handleBigEndianIntegers
 
 

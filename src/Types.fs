@@ -90,6 +90,15 @@ module Types =
         | [<Key(20)>] GetProtectedUsers
         | [<Key(21)>] GetGroupsWithLocalAdminRights
         | [<Key(22)>] DumpAD
+        | [<Key(23)>] GetGroupMembers
+        | [<Key(24)>] GetGMSAs
+        | [<Key(25)>] GetUsersWithSidHistory
+        | [<Key(26)>] GetUsersWithAdminCount
+        | [<Key(27)>] GetMachineAccountQuota
+        | [<Key(28)>] GetForestDomains
+        | [<Key(29)>] GetForestGlobalCatalogs
+        | [<Key(30)>] GetForestTrusts
+        | [<Key(31)>] GetDomainSID
     
     
     ///

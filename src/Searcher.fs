@@ -41,6 +41,13 @@ module Searcher =
         (creds, modified) ||> searchAll
         |> List.map2 (createLDAPSearchResults searchType) details
 
+    /// <summary>
+    /// Internal helper: apply a searcher's transform to a config and return the modified details.
+    /// Exposed for unit-testing filter construction without hitting LDAP.
+    /// </summary>
+    let internal applySearchTransform modifyDetails (config: SearcherConfig) : LdapSearchConfig =
+        config.ldapDetails |> modifyDetails
+
     // ── Pre-built searches ──────────────────────────────────────────
 
     /// <summary>
@@ -286,4 +293,116 @@ module Searcher =
     let dumpDomainObjects (configs: SearcherConfig list) =
         searchWith LDAPSearchType.DumpAD
                    (fun d -> {d with filter = $"(objectclass=*)"})
+                   configs
+
+    // ── Group 1: Single-query additions ──────────────────────────────
+
+    /// <summary>
+    /// Connects to an AD and retrieves group membership data, requesting only the
+    /// <c>member</c> and <c>samaccountname</c> attributes.
+    /// Uses the filter
+    /// <code>(&amp;(objectCategory=group)(samaccountname=&lt;GroupName&gt;)</code>
+    /// Pass the group name via the <c>filter</c> field in <c>SearcherConfig</c> as the group's
+    /// <c>samAccountName</c>, e.g. <c>filter = "Domain Admins"</c>. If no filter is provided,
+    /// falls back to retrieving all groups that have at least one member.
+    /// </summary>
+    let getGroupMembers (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetGroupMembers
+                   (fun d ->
+                       match d.filter with
+                       | "" | null ->
+                           {d with filter = $"""(&(objectCategory=group)(member=*))"""; properties = [| "member"; "samaccountname" |]}
+                       | name ->
+                           {d with filter = $"""(&(objectCategory=group)(samaccountname={name}))"""; properties = [| "member"; "samaccountname" |]})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and attempts to retrieve all Group Managed Service Accounts using the filter
+    /// <code>(objectClass=msDS-GroupManagedServiceAccount)</code>
+    /// User-supplied filter is appended inside an AND.
+    /// </summary>
+    let getGMSAs (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetGMSAs
+                   (fun d -> {d with filter = $"""(&(objectClass=msDS-GroupManagedServiceAccount){d.filter})"""})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and attempts to retrieve all users with the <c>sidHistory</c> attribute set
+    /// using the filter
+    /// <code>(&amp;(objectCategory=person)(objectClass=user)(sidHistory=*))</code>
+    /// User-supplied filter is appended inside an AND.
+    /// </summary>
+    let getUsersWithSidHistory (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetUsersWithSidHistory
+                   (fun d -> {d with filter = $"""(&(objectCategory=person)(objectClass=user)(sidHistory=*){d.filter})"""})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and attempts to retrieve all users and groups where <c>adminCount</c> is 1,
+    /// indicating current or former membership in a privileged group, using the filter
+    /// <code>(&amp;(admincount=1)(|(objectcategory=person)(objectcategory=group)))</code>
+    /// User-supplied filter is appended inside an AND.
+    /// </summary>
+    let getUsersWithAdminCount (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetUsersWithAdminCount
+                   (fun d -> {d with filter = $"""(&(admincount=1)(|(objectcategory=person)(objectcategory=group)){d.filter})"""})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and retrieves the <c>ms-DS-MachineAccountQuota</c> property from the domain object
+    /// using a base-level search with the filter
+    /// <code>(objectClass=domain)</code>
+    /// User-supplied filter is ignored for this search.
+    /// </summary>
+    let getMachineAccountQuota (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetMachineAccountQuota
+                   (fun d -> {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = [| "ms-DS-MachineAccountQuota" |]})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and retrieves all domains in the forest by querying the configuration partition
+    /// using the filter
+    /// <code>(objectClass=domainDNS)</code>
+    /// with search base <code>CN=Partitions,CN=Configuration,[DC=domain...]</code>
+    /// User-supplied filter is appended inside an OR.
+    /// </summary>
+    let getForestDomains (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetForestDomains
+                   (fun d -> {d with filter = $"""(|(objectClass=domainDNS){d.filter})"""; ldapDN = $"""CN=Partitions,CN=Configuration,{d.ldapDN}"""})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and retrieves all global catalog servers by querying the configuration partition
+    /// using the filter
+    /// <code>(objectClass=nTDSDSA)</code>
+    /// with search base <code>CN=Sites,CN=Configuration,[DC=domain...]</code>
+    /// User-supplied filter is appended inside an OR.
+    /// </summary>
+    let getForestGlobalCatalogs (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetForestGlobalCatalogs
+                   (fun d -> {d with filter = $"""(|(objectClass=nTDSDSA){d.filter})"""; ldapDN = $"""CN=Sites,CN=Configuration,{d.ldapDN}"""})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and retrieves all forest-level trusts by querying the configuration partition
+    /// using the filter
+    /// <code>(objectClass=trustedDomain)</code>
+    /// with search base <code>CN=Configuration,[DC=domain...]</code>
+    /// User-supplied filter is appended inside an OR.
+    /// </summary>
+    let getForestTrusts (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetForestTrusts
+                   (fun d -> {d with filter = $"""(|(objectClass=trustedDomain){d.filter})"""; ldapDN = $"""CN=Configuration,{d.ldapDN}"""})
+                   configs
+
+    /// <summary>
+    /// Connects to an AD and retrieves the domain's base SID by querying the domain object
+    /// using a base-level search with the filter
+    /// <code>(objectClass=domain)</code>
+    /// requesting the <c>objectSid</c> property.
+    /// User-supplied filter is ignored for this search.
+    /// </summary>
+    let getDomainSID (configs: SearcherConfig list) =
+        searchWith LDAPSearchType.GetDomainSID
+                   (fun d -> {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = [| "objectSid" |]})
                    configs

@@ -47,13 +47,13 @@ let config =
 ```
 As it suggests, this will create a connection to an active directory located at `northernkingdoms.local` with the provided credentials. Fiewport does not assume your computer is connected to the AD you want to examine, so this information is necessary. It also allows you to control what user(s) you chose to enumerate with.
 
-The `config.filter` is where you may influence the LDAP filter used during the canned searches. Please read the comments on each `Seacher` method, because filters are sometimes `OR`-ed, sometimes `AND`ed, and sometimes ignored completely.
+The `config.filter` is where you may influence the LDAP filter used during the canned searches. Please read the comments on each `Searcher` method, because filters are sometimes `OR`-ed, sometimes `AND`ed, and sometimes ignored completely.
 
 > ℹ️ If you want complete control over your search, see `Searcher.getDomainObjects`
 
 Additionally, putting attributes into the `properties` array allows you to trim down the attributes that come back from a search. If you know you only care about, say, "adminCount" and the "userAccountControl" attributes, you can place them in the array and dramatically reduce the amount of console output. You can also create arrays of attributes ahead of time and keep them in your scripts.
 
-For example, if you know you only cared about "name" "memberOf" and "primaryGroupID" for the `getUsers` search:
+For example, if you know you only cared about "name", "memberOf" and "primaryGroupID" for the `getUsers` search:
 
 ```fsharp
 #r "nuget: Fiewport"
@@ -65,7 +65,7 @@ open Fiewport
 
 let config =
     { ldapDetails = 
-        { properties = [||]
+        { properties = [| "name"; "memberOf"; "primaryGroupID" |]
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
@@ -78,7 +78,7 @@ let config =
 
 [config]
 |> Searcher.getUsers
-|> PrettyPrinter.prettyPrint
+|> PrettyPrinter.print
 ```
 
 ![only these properties](only-properties.png)
@@ -86,6 +86,23 @@ let config =
 > ⚠️ Be careful when restricting LDAP searchers to certain properties! If you combine restricted properties with a `Filter` and you try to filter for a property that isn't present, you'll just get empty results!
 
 Since connection `config`s aren't global, you can store multiple configs with different LDAP addresses, users, etc. Put them all in a list, and feed them in!
+
+To connect over LDAPS, set `useSsl = true` and use port 636:
+
+```fsharp
+let config =
+    { ldapDetails = 
+        { properties = [||]
+          filter = ""
+          ldapDN = "DC=northernkingdoms,DC=local"
+          scope = SearchScope.Subtree
+          ldapHost = "192.168.10.38"
+          ldapPort = 636
+          useSsl = true }
+      credentials = 
+      { username = "samwell.tarly@northernkingdoms.local"
+        password = "Heartsbane" } }
+```
 
 ### Searchers
 
@@ -122,6 +139,15 @@ getKerberoastTargets
 getProtectedUsers
 getGroupsWithLocalAdminRights
 dumpDomainObjects
+getGroupMembers
+getGMSAs
+getUsersWithSidHistory
+getUsersWithAdminCount
+getMachineAccountQuota
+getForestDomains
+getForestGlobalCatalogs
+getForestTrusts
+getDomainSID
 
 ```
 
@@ -159,7 +185,7 @@ let config =
 [config]
 |> Searcher.getUsers
 |> Filter.attributePresent "adminCount"
-|> PrettyPrinter.prettyPrint
+|> PrettyPrinter.print
 ```
 ![adminCount example](filter-example.png)
 
@@ -192,9 +218,28 @@ let config =
 |> Searcher.getUsers
 |> Filter.attributePresent "adminCount"
 |> Filter.attributeIsValue "cn" "Administrator"
-|> PrettyPrinter.prettyPrint
+|> PrettyPrinter.print
 ```
 This reduces the results to one.
+
+`Filter.byConfig` lets you isolate results from a specific search config when you've queried multiple domains. Combine it with `Tee` to fan out results per domain:
+
+```fsharp
+[config1; config2]
+|> Searcher.getUsers
+|> Tee.filter (Filter.byConfig config1 >> Filter.attributeIsValue "objectGUID" "31B2F340-016D-11D2-945F-00C04FB984F9") PrettyPrinter.teePrint
+|> Tee.filter (Filter.byConfig config2 >> Filter.attributePresent "adminCount") PrettyPrinter.teePrint
+|> ignore
+```
+
+`Filter.valueIs` filters for entries containing a specific value in any attribute:
+
+```fsharp
+[config]
+|> Searcher.getUsers
+|> Filter.valueIs "robb.stark"
+|> PrettyPrinter.print
+```
 
 ### Molds
 
@@ -229,6 +274,15 @@ let config =
 |> Filter.attributeIsValue "cn" "Administrator"
 |> Mold.getValues // string list list list
 |> doWhateverYouLikeWithYourResults
+```
+
+`Mold.extractOccurances` pulls a single attribute value across all results into a flat list:
+
+```fsharp
+[config]
+|> Searcher.getUsers
+|> Mold.extractOccurances "distinguishedname"
+|> PrettyPrinter.listPrinter "Distinguished Names"
 ```
 
 ### Tee
@@ -269,7 +323,28 @@ let config =
 
 `Tee.filter` has a function signature of `Filter -> FilterAction -> LDAPSearchResult list -> LDAPSearchResult list`. This allows you to compose a `Filter` chain, and then cap the function off with the so-called `FilterAction`.
 
+`Tee.mold` works the same way but takes a `Mold<'T>` instead of a `Filter`, letting you branch on transformed data:
+
+```fsharp
+[config]
+|> Searcher.getUsers
+|> Tee.mold (Mold.extractOccurances "samaccountname") (PrettyPrinter.listPrinter "User Names")
+|> Tee.filter (Filter.attributePresent "adminCount") PrettyPrinter.teePrint
+|> ignore
+```
+
 Chain `Tee`s together to do more than one thing with a single search. Out the 'bottom' of the `Tee` comes the same search results that went in. You can throw them away, as in the example above, or do whatever else you like.
+
+`PrettyPrinter.teeDelimiter` lets you insert a labeled divider between Tee branches:
+
+```fsharp
+[config]
+|> Searcher.getUsers
+|> Tee.filter (Filter.attributePresent "adminCount") PrettyPrinter.teePrint
+|> PrettyPrinter.teeDelimiter "--- Done with adminCount ---"
+|> Tee.filter (Filter.attributePresent "servicePrincipalName") PrettyPrinter.teePrint
+|> ignore
+```
 
 > Right now, the only `FilterAction` is the one provided by `PrettyPrint`. A `FilterAction` is just `LDAPSearchResult list -> unit`
 
@@ -326,7 +401,7 @@ Serializer.deserializeFromDisk """C:\path\to\bin\DC=sevenkingdoms,DC=local-GetUs
 
 * ~~Schema: Fiewport stores all 1507 MS-native AD attributes. However, it is very common for 3rd party software and sysadmins to add custom attributes. Supporting these cleanly means doing some inspection of the schema, and I haven't worked with that yet. It's a planned feature. Until then, those attributes will not show up on their objects.~~ Fixed!
 * Negation filters: `Filter` has no negations built-in. Planned.
-* Automatic GPO resolution: GPOs are tracked by their GUID. PowerView and others resolve these to human-names automatically (more or less). Planned.
+* ~~Automatic GPO resolution: GPOs are tracked by their GUID. PowerView and others resolve these to human-names automatically (more or less). Planned.~~ Partially fixed — gPCMachineExtensionNames and gPCUserExtensionNames GUIDs are now resolved to human-readable names via a lookup table.
 * Forced color: `PrettyPrinter` enforces color, which isn't completely compatible or always desirable. I'll provide a no-color option around the time that file export is added.
 * ~~No file operations: Speaking of file export, there isn't any. Of course, these are .fsx files and `System.IO` is an import away. Planned.~~ Covered by serialization above.
 * ~~No caching controls: The underlying LDAP searcher supports caching results. However, the way Fiewport disposes of searchers means this setting isn't relevant. I think the use of `Tee`s allows for most of the benefits of caching.~~ Moving to `S.DS.P` removed this optionality, but the addition of serializing the results covers it. 

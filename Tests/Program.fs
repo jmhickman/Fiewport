@@ -14,7 +14,8 @@ module Program =
               LDAPDataHandlerTests.dataHandlerTests
               SecurityDescriptorTests.securityDescriptorTests
               ByteHandlerTests.allTests
-              SerializerTests.serializerTests ]
+              SerializerTests.serializerTests
+              SearcherTests.searcherTests ]
 
     [<EntryPoint>]
     let main argv =

@@ -34,6 +34,9 @@ let private recycleBinGuid = hexToBytes "D8-DC-6D-76-D0-AC-5E-44-F3-B9-A7-F9-B6-
 // msds-optionalfeatureguid: Privileged Access Management (ec43e873-cce8-4640-b4ab-07ffe4ab5bcd)
 let private pamGuid = hexToBytes "73-E8-43-EC-E8-CC-40-46-B4-AB-07-FF-E4-AB-5B-CD"
 
+// invocationId: real value from DC NTDS settings (ba360a67-1055-4a3c-bbe0-d5012e05399c)
+let private invocationIdGuid = hexToBytes "67-0A-36-BA-55-10-3C-4A-BB-E0-D5-01-2E-05-39-9C"
+
 // ========== Byte Handler Tests ==========
 
 let ``handles SID objectsid`` () =
@@ -95,6 +98,25 @@ let ``handles msds-optionalfeatureguid missing`` () =
     let input = Map.ofList [ "cn", [ADString "test"] ]
     let result = handlemsdsOptionalFeatureGuid input
     Expect.isFalse (Map.containsKey "msds-optionalfeatureguid" result) "no key added"
+
+let ``handles invocationId`` () =
+    let input = Map.ofList [ "invocationid", [ADBytes invocationIdGuid] ]
+    let result = handleInvocationId input
+    
+    match Map.tryFind "invocationid" result with
+    | Some [ADString s] ->
+        Expect.equal s "ba360a67-1055-4a3c-bbe0-d5012e05399c" "invocationId GUID decoded"
+    | _ -> Expect.isTrue false "expected single GUID string"
+
+let ``handles invocationId missing`` () =
+    let input = Map.ofList [ "cn", [ADString "test"] ]
+    let result = handleInvocationId input
+    Expect.isFalse (Map.containsKey "invocationid" result) "no key added"
+
+let ``handles invocationId wrong size`` () =
+    let input = Map.ofList [ "invocationid", [ADBytes [|1uy; 2uy; 3uy|]] ]
+    let result = handleInvocationId input
+    Expect.isFalse (Map.containsKey "invocationid" result) "non-16-byte value dropped"
 
 let ``handles DNS record`` () =
     let input = Map.ofList [ "dnsrecord", [ADBytes realDnsRecord] ]
@@ -303,6 +325,9 @@ let allTests =
           testCase "handles msds-optionalfeatureguid single" ``handles msds-optionalfeatureguid single``
           testCase "handles msds-optionalfeatureguid multiple" ``handles msds-optionalfeatureguid multiple``
           testCase "handles msds-optionalfeatureguid missing" ``handles msds-optionalfeatureguid missing``
+          testCase "handles invocationId" ``handles invocationId``
+          testCase "handles invocationId missing" ``handles invocationId missing``
+          testCase "handles invocationId wrong size" ``handles invocationId wrong size``
           testCase "handles DNS record" ``handles DNS record``
           testCase "handles DNS record missing" ``handles DNS record missing``
           testCase "handles DSA signature" ``handles DSA signature``

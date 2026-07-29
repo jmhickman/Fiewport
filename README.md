@@ -4,7 +4,7 @@
 
 Fiewport is a library intended for assisting pentesters with enumerating and manipulating information from Microsoft Active Directory environments.
 
-~~ > ⚠️ Fiewport currently runs only on Windows hosts, due to limitations in Microsoft's support of LDAP authentication mechanisms on other platforms ~~
+~~> ⚠️ Fiewport currently runs only on Windows hosts, due to limitations in Microsoft's support of LDAP authentication mechanisms on other platforms~~
 Fiewport now runs natively on Linux and Windows hosts, as well as optionally supporting LDAPS.
 
 ### Scripts

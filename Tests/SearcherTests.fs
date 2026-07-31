@@ -30,6 +30,16 @@ module SearcherTests =
     let private tGetForestGlobalCatalogs d = {d with filter = $"""(|(objectClass=nTDSDSA){d.filter})"""; ldapDN = $"""CN=Sites,CN=Configuration,{d.ldapDN}"""}
     let private tGetForestTrusts d = {d with filter = $"""(|(objectClass=trustedDomain){d.filter})"""; ldapDN = $"""CN=Configuration,{d.ldapDN}"""}
     let private tGetDomainSID d = {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = [| "objectSid" |]}
+    let private tGetPasswordPolicy d =
+        {d with filter = $"(objectClass=domain)"
+                scope = SearchScope.Base
+                properties = [| "minpwdage"
+                                "maxpwdage"
+                                "minpwdlength"
+                                "pwdhistorylength"
+                                "lockoutthreshold"
+                                "lockoutduration"
+                                "lockoutobservationwindow" |]}
 
     // ── Test configs ─────────────────────────────────────────────────
 
@@ -109,4 +119,15 @@ module SearcherTests =
                 { let result = transform tGetDomainSID baseConfig
                   Expect.equal result.filter "(objectClass=domain)" "domain filter"
                   Expect.equal result.scope SearchScope.Base "base scope"
-                  Expect.sequenceEqual result.properties [| "objectSid" |] "requests objectSid" }]
+                  Expect.sequenceEqual result.properties [| "objectSid" |] "requests objectSid" }
+              test "getPasswordPolicy uses base scope and requests password policy properties"
+                { let result = transform tGetPasswordPolicy baseConfig
+                  Expect.equal result.filter "(objectClass=domain)" "domain filter"
+                  Expect.equal result.scope SearchScope.Base "base scope"
+                  Expect.sequenceEqual result.properties
+                      [| "minpwdage"; "maxpwdage"; "minpwdlength"; "pwdhistorylength"
+                         "lockoutthreshold"; "lockoutduration"; "lockoutobservationwindow" |]
+                      "requests all password policy properties" }
+              test "getPasswordPolicy ignores user-supplied filter"
+                { let result = transform tGetPasswordPolicy (configWithFilter "(cn=x)")
+                  Expect.equal result.filter "(objectClass=domain)" "filter unchanged" }]

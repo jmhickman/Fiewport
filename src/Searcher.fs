@@ -406,3 +406,27 @@ module Searcher =
         searchWith LDAPSearchType.GetDomainSID
                    (fun d -> {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = [| "objectSid" |]})
                    configs
+
+    /// <summary>
+    /// Connects to an AD and retrieves the default domain password policy by querying the domain object
+    /// using a base-level search with the filter
+    /// <code>(objectClass=domain)</code>
+    /// requesting the password policy properties: <c>minpwdage</c>, <c>maxpwdage</c>,
+    /// <c>minpwdlength</c>, <c>pwdhistorylength</c>, <c>lockoutthreshold</c>,
+    /// <c>lockoutduration</c>, and <c>lockoutobservationwindow</c>.
+    /// User-supplied filter is ignored for this search.
+    /// Timespan attributes (<c>minpwdage</c>, <c>maxpwdage</c>, <c>lockoutduration</c>,
+    /// <c>lockoutobservationwindow</c>) are automatically converted to hours by the data handlers.
+    /// </summary>
+    let getPasswordPolicy (configs: SearcherConfig list) =
+        let passwordPolicyProperties =
+            [| "minpwdage"
+               "maxpwdage"
+               "minpwdlength"
+               "pwdhistorylength"
+               "lockoutthreshold"
+               "lockoutduration"
+               "lockoutobservationwindow" |]
+        searchWith LDAPSearchType.GetDefaultPasswordPolicy
+                   (fun d -> {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = passwordPolicyProperties})
+                   configs

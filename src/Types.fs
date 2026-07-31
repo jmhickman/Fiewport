@@ -99,6 +99,7 @@ module Types =
         | [<Key(29)>] GetForestGlobalCatalogs
         | [<Key(30)>] GetForestTrusts
         | [<Key(31)>] GetDomainSID
+        | [<Key(32)>] GetDefaultPasswordPolicy
     
     
     ///

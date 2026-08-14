@@ -17,6 +17,9 @@
         <Compile Include="ByteHandlerTests.fs" />
         <Compile Include="SerializerTests.fs" />
         <Compile Include="SearcherTests.fs" />
+        <Compile Include="FauliAuthTests.fs" />
+        <Compile Include="LdapWireTests.fs" />
+        <Compile Include="LdapSearchTests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

@@ -212,16 +212,16 @@ let private afterAllHosts (connectionType : ConnectionType) (credential : Creden
 ///
 /// Build a Fauli AuthenticationRequest from Fiewport config and credentials.
 /// connectHost = SPN + LDAP TCP; kdcHost = KDC for AS/TGS; spnHost = SPN hostname.
+/// 
 let private buildAuthenticationRequest (config : LdapSearchConfig) (creds : LdapCredentials) : Result<AuthenticationRequest, LdapWireError> =
     let connectionType = Ldap (buildLdapConnectionConfig config)
     let credential = buildCredential creds
-    let completeRequest (hostsResult : Result<ResolvedFauliHosts, LdapWireError>) =
-        afterAllHosts connectionType credential hostsResult
+    
     resolveLdapEndpoints config.ldapHostname config.ldapIP
     |> afterResolveEndpoints
     |> afterConnectHost
     |> afterKdcHost
-    |> completeRequest
+    |> afterAllHosts connectionType credential
 
 
 ///
@@ -235,6 +235,7 @@ let private sessionFromAuthResponse (response : AuthenticatedResponse) : Result<
 ///
 /// Call Fauli.Solver.authenticate and extract the LdapSession and authentication method from
 /// the AuthLdap connection handle. All Result/Option handling is encapsulated here.
+/// 
 let private authenticateWithFauli (request : AuthenticationRequest) : Result<(LdapSession * AuthenticationMethod), LdapWireError> =
     match Fauli.Solver.authenticate request with
     | Error authErr -> Error (mapAuthError authErr)
@@ -245,6 +246,7 @@ let private authenticateWithFauli (request : AuthenticationRequest) : Result<(Ld
 /// Wrap the authenticated LdapSession from Fauli in an AuthenticatedLdapSession.
 /// Uses Fauli's NextMessageId (starts at 2 after Kerberos bind, 3 after NTLM) so
 /// message IDs remain correlated with the server's expectations.
+/// 
 let private createSession (ldapSession : LdapSession) (authMethod : AuthenticationMethod) : AuthenticatedLdapSession =
     { stream = ldapSession.Stream
       messageId = ldapSession.NextMessageId
@@ -267,9 +269,10 @@ let private afterFauliAuth (sessionResult : Result<LdapSession * AuthenticationM
 
 
 ///
-/// Authenticate against an LDAP server using Fauli.
+/// Authenticate against an LDAP server
 /// Takes Fiewport's LdapCredentials and LdapSearchConfig, performs Kerberos or
-/// NTLM SASL bind via Fauli, and returns an AuthenticatedLdapSession on success.
+/// NTLM SASL bind, and returns an AuthenticatedLdapSession on success.
+/// 
 let authenticate (creds : LdapCredentials) (config : LdapSearchConfig) : Result<AuthenticatedLdapSession, LdapWireError> =
     buildAuthenticationRequest config creds
     |> afterBuildRequest

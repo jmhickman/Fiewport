@@ -21,7 +21,7 @@ A short demonstration of Fiewport in a script might look like this:
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -33,7 +33,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 
@@ -45,7 +46,7 @@ let config =
 |> Searcher.getUsers
 |> PrettyPrinter.print
 ```
-As it suggests, this will create a connection to an active directory located at `northernkingdoms.local` with the provided credentials. Fiewport does not assume your computer is connected to the AD you want to examine, so this information is necessary. It also allows you to control what user(s) you chose to enumerate with.
+As it suggests, this will create a connection to an active directory located at `192.168.10.38` with the provided credentials. Supply `ldapHostname` (FQDN), `ldapIP`, or both — use `""` when unknown. With both set, Fiewport uses the IP as the Kerberos KDC address and the hostname for the LDAP SPN / session; IP-only falls through to NTLM when no ticket material is available. Fiewport does not assume your computer is joined to the AD you want to examine, so this information is necessary. It also allows you to control what user(s) you choose to enumerate with.
 
 The `config.filter` is where you may influence the LDAP filter used during the canned searches. Please read the comments on each `Searcher` method, because filters are sometimes `OR`-ed, sometimes `AND`ed, and sometimes ignored completely.
 
@@ -57,7 +58,7 @@ For example, if you know you only cared about "name", "memberOf" and "primaryGro
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -69,7 +70,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 
@@ -96,7 +98,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 636
           useSsl = true }
       credentials = 
@@ -163,7 +166,7 @@ Expanding our previous example, lets add a `Filter` that requires the "adminCoun
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -175,7 +178,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 
@@ -195,7 +199,7 @@ We can chain it together with another `Filter` that requires an attribute to hav
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -207,7 +211,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 
@@ -249,7 +254,7 @@ This reduces the results to one.
 tupled list of the keys and values.
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -261,7 +266,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 
@@ -295,7 +301,7 @@ While you can certainly chain `Filter`s together, what you get at the end is a r
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -307,7 +313,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 
@@ -359,7 +366,7 @@ Fiewport now supports serializing and deserializing LDAP search results to/from 
 
 ```fsharp
 #r "nuget: Fiewport"
-#r "nuget: Novell.Directory.Ldap.NETStandard"
+#r "nuget: Fauli"
 #r "nuget: EluciusFTW.SpectreCoff"
 #r "nuget: MessagePack.FSharpExtensions"
 
@@ -371,7 +378,8 @@ let config =
           filter = ""
           ldapDN = "DC=northernkingdoms,DC=local"
           scope = SearchScope.Subtree
-          ldapHost = "192.168.10.38"
+          ldapHostname = ""
+          ldapIP = "192.168.10.38"
           ldapPort = 389
           useSsl = false }
       credentials = 

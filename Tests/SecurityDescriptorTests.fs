@@ -6,11 +6,11 @@ module SecurityDescriptorTests =
     open Expecto
     open Fiewport
 
-    // Helper: copy source array into destination starting at destIndex
+
     let private arrayCopyTo (src: byte[]) (dst: byte[]) (destIndex: int) =
         Array.Copy(src, 0, dst, destIndex, src.Length)
 
-    // Helper: build a minimal SID byte array
+
     let private buildSidBytes (authority: int) (subAuthorities: int list) =
         let subAuthCount = List.length subAuthorities
         let size = 8 + (subAuthCount * 4)
@@ -28,14 +28,14 @@ module SecurityDescriptorTests =
             for j in 0 .. 3 do bytes.[8 + i * 4 + j] <- b.[j])
         bytes
 
-    // Well-known SIDs for testing
+
     let private sidLocalSystem = buildSidBytes 5 [18]
     let private sidAuthUsers = buildSidBytes 5 [11]
     let private sidEveryone = buildSidBytes 1 []
     let private sidAdmins = buildSidBytes 5 [32; 544]
     let private sidSelf = buildSidBytes 5 [10]
 
-    // Helper: build a standard ACE (ACCESS_ALLOWED_ACE type = 0x00)
+
     let private buildStandardAce (accessMask: int) (sid: byte[]) =
         let aceSize = 8 + Array.length sid
         let bytes = Array.zeroCreate<byte> aceSize
@@ -48,12 +48,12 @@ module SecurityDescriptorTests =
         arrayCopyTo sid bytes 8
         bytes
 
-    /// Describes the optional GUID fields in an Object ACE.
+
     type private ObjectAceParams =
         { objectType: byte[] option
           inheritedObjectType: byte[] option }
 
-    // Helper: build an Object ACE (ACCESS_ALLOWED_OBJECT_ACE type = 0x05)
+
     let private buildObjectAce (accessMask: int) (sid: byte[]) (aceParams: ObjectAceParams) =
         // Derive guid size, objFlags, and the GUID segments to copy — all from one match
         let guidSize, objFlags, guidSegments =
@@ -80,7 +80,7 @@ module SecurityDescriptorTests =
         arrayCopyTo sid bytes offset
         bytes
 
-    // Helper: build a minimal ACL with given ACEs
+
     let private buildAcl (aces: byte[] list) =
         let aceDataSize = aces |> List.sumBy Array.length
         let aclSize = 8 + aceDataSize
@@ -96,7 +96,7 @@ module SecurityDescriptorTests =
             offset <- offset + Array.length ace)
         bytes
 
-    // Helper: build a minimal Security Descriptor with given DACL
+
     let private buildSecurityDescriptor (dacl: byte[] option) =
         let sdHeaderSize = 20
         let daclSize = match dacl with Some a -> Array.length a | None -> 0
@@ -112,6 +112,7 @@ module SecurityDescriptorTests =
             arrayCopyTo a bytes sdHeaderSize
         | None -> ()
         bytes
+
 
     let securityDescriptorTests =
         testList "SecurityDescriptor" 

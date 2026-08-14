@@ -2,9 +2,7 @@
 
 [<AutoOpen>]
 module Types =
-    // Allow test cases to function
-    [<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Fiewport.Tests")>]
-    do ()
+
     
     open MessagePack
 
@@ -25,7 +23,10 @@ module Types =
         | ADBytes of byte array 
         | ADString of string 
         
-    
+
+    type internal RawLdapEntry =
+        { DN : string
+          Attributes : Map<string, byte array list> }    
     ///
     /// <summary>
     /// Authentication credentials for LDAP connection.
@@ -38,9 +39,19 @@ module Types =
 
     ///
     /// <summary>
-    /// Serializable LDAP search configuration — no credentials, safe to persist.
+    /// LDAP search configuration
     /// Embedded in <c>LDAPSearchResult</c> for downstream analysis of search parameters.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>ldapHostname</c> and <c>ldapIP</c> are independent; either or both may be set.
+    /// Use empty string (<c>""</c>) when a value is unknown — not <c>null</c>, not optional fields.
+    /// </para>
+    /// <para>
+    /// Kerberos needs the full AD server hostname, if you do not provide TGT material.
+    /// IP-only typically results in NTLM authentication because AD has no <c>ldap/&lt;ip&gt;</c> SPN.
+    /// </para>
+    /// </remarks>
     ///
     [<MessagePackObject>]
     type LdapSearchConfig =
@@ -48,9 +59,10 @@ module Types =
           [<Key(1)>] filter: string
           [<Key(2)>] ldapDN: string
           [<Key(3)>] scope: SearchScope
-          [<Key(4)>] ldapHost: string
-          [<Key(5)>] ldapPort: int
-          [<Key(6)>] useSsl: bool }
+          [<Key(4)>] ldapHostname: string
+          [<Key(5)>] ldapIP: string
+          [<Key(6)>] ldapPort: int
+          [<Key(7)>] useSsl: bool }
 
     ///
     /// <summary>
@@ -148,7 +160,54 @@ module Types =
     
     
     ///
-    /// <summary>Defines a MoldAction for the <c>Tee</c></summary>    
+    /// <summary>Defines a MoldAction for the <c>Tee</c></summary>
     type MoldAction<'T> = 'T -> unit
+
+
+    ///
+    /// <summary>
+    /// Error type for the raw LDAP wire protocol layer.
+    /// Each case represents a distinct failure mode so callers can handle
+    /// connection, bind, and protocol errors exhaustively.
+    /// </summary>
+    ///
+    [<MessagePackObject>]
+    type LdapWireError =
+        | [<Key(0)>] ConnectionFailed of string
+        | [<Key(1)>] BindFailed of string
+        | [<Key(2)>] SearchFailed of string
+        | [<Key(3)>] BerDecodeError of string
+        | [<Key(4)>] Timeout of string
+        | [<Key(5)>] Unexpected of string
+
+
+    ///
+    /// <summary>
+    /// Represents an authenticated LDAP session returned by the Fauli adapter.
+    /// Wraps the underlying <c>NetworkStream</c> and owns the message ID counter
+    /// used for LDAPv3 message correlation. The mutable counter is encapsulated
+    /// here — the domain layer never sees mutation.
+    /// </summary>
+    ///
+    type AuthenticatedLdapSession =
+        { Stream : System.IO.Stream
+          mutable messageId : int32
+          BoundAs : string option }
+
+    module AuthenticatedLdapSession =
+        /// Create a new session with the given stream and starting message ID.
+        /// When called, nextMessageId is 2 (1 is for the SASL bind).
+        let create (stream : System.IO.Stream) (nextMessageId : int) : AuthenticatedLdapSession =
+            { Stream = stream
+              messageId = nextMessageId
+              BoundAs = None }
+
+        /// Atomically allocate the next message ID and advance the counter.
+        let allocateMessageId (session : AuthenticatedLdapSession) : int32 =
+            let id = session.messageId
+            session.messageId <- id + 1
+            id
+
+
 
 

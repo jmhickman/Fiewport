@@ -3,8 +3,9 @@ namespace Fiewport.Tests
 module GPOHandlerTests =
 
     open Expecto
+    
     open Fiewport
-    open Fiewport.Types
+
 
     let mkMap (pairs : (string * string list) list) : Map<string, string list> =
         Map.ofList pairs

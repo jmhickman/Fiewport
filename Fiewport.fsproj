@@ -19,6 +19,9 @@
         <Content Include="LICENSE" />
         <Compile Include="src\Types.fs" />
         <Compile Include="src\FileOperations.fs" />
+        <Compile Include="src\FauliAuth.fs" />
+        <Compile Include="src\LdapWire.fs" />
+        <Compile Include="src\LdapSearch.fs" />
         <Compile Include="src\LDAPConstants.fs" />
         <Compile Include="src\SecurityDescriptor.fs" />
         <Compile Include="src\LDAPDataHandlers.fs" />
@@ -32,10 +35,10 @@
 
     <ItemGroup>
       <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.54.7" />
+      <PackageReference Include="Fauli" Version="2026.8.13" />
       <PackageReference Include="MessagePack" Version="3.1.8" />
       <PackageReference Include="MessagePack.FSharpExtensions" Version="4.0.0" />
-      <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="4.0.0" />
-      <PackageReference Include="System.IO" Version="4.3.0" />
+
       <PackageReference Update="FSharp.Core" Version="9.0.201" />
     </ItemGroup>
 

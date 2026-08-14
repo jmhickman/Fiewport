@@ -3,6 +3,7 @@ namespace Fiewport.Tests
 module TeeTests =
 
     open Expecto
+    
     open Fiewport
 
     let teeTests =

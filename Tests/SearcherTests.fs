@@ -4,20 +4,18 @@ module SearcherTests =
 
     open Expecto
     open Fiewport
-    open Fiewport.Types
 
-    // Helper: apply a searcher's transform lambda to a config and return the modified details
     let private transform (modifyDetails: LdapSearchConfig -> LdapSearchConfig) (config: SearcherConfig) =
         Searcher.applySearchTransform modifyDetails config
 
-    // ── Transform lambdas (mirror Searcher.fs) ───────────────────────
+
 
     let private tGetUsers d = {d with filter = $"""(|(objectCategory=person)(objectCategory=user){d.filter})"""}
     let private tGetSites d = {d with filter = $"""(|(objectClass=site){d.filter})"""; ldapDN = $"""CN=Sites,CN=Configuration,{d.ldapDN}"""}
     let private tGetASREPTargets d = {d with filter = $"""(&(objectCategory=person)(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))"""}
     let private tGetKerberoastTargets d = {d with filter = $"""(&(objectClass=user)(servicePrincipalName=*)(!(cn=krbtgt))(!(samaccounttype=805306369)))"""}
 
-    // Group 1 additions
+
     let private tGetGroupMembers d =
         match d.filter with
         | "" | null -> {d with filter = $"""(&(objectCategory=group)(member=*))"""; properties = [| "member"; "samaccountname" |]}
@@ -25,14 +23,14 @@ module SearcherTests =
     let private tGetGMSAs d = {d with filter = $"""(&(objectClass=msDS-GroupManagedServiceAccount){d.filter})"""}
     let private tGetUsersWithSidHistory d = {d with filter = $"""(&(objectCategory=person)(objectClass=user)(sidHistory=*){d.filter})"""}
     let private tGetUsersWithAdminCount d = {d with filter = $"""(&(admincount=1)(|(objectcategory=person)(objectcategory=group)){d.filter})"""}
-    let private tGetMachineAccountQuota d = {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = [| "ms-DS-MachineAccountQuota" |]}
+    let private tGetMachineAccountQuota d = {d with filter = $"(objectClass=domain)"; scope = Base; properties = [| "ms-DS-MachineAccountQuota" |]}
     let private tGetForestDomains d = {d with filter = $"""(|(objectClass=domainDNS){d.filter})"""; ldapDN = $"""CN=Partitions,CN=Configuration,{d.ldapDN}"""}
     let private tGetForestGlobalCatalogs d = {d with filter = $"""(|(objectClass=nTDSDSA){d.filter})"""; ldapDN = $"""CN=Sites,CN=Configuration,{d.ldapDN}"""}
     let private tGetForestTrusts d = {d with filter = $"""(|(objectClass=trustedDomain){d.filter})"""; ldapDN = $"""CN=Configuration,{d.ldapDN}"""}
-    let private tGetDomainSID d = {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = [| "objectSid" |]}
+    let private tGetDomainSID d = {d with filter = $"(objectClass=domain)"; scope = Base; properties = [| "objectSid" |]}
     let private tGetPasswordPolicy d =
         {d with filter = $"(objectClass=domain)"
-                scope = SearchScope.Base
+                scope = Base
                 properties = [| "minpwdage"
                                 "maxpwdage"
                                 "minpwdlength"
@@ -48,8 +46,9 @@ module SearcherTests =
             { properties = [||]
               filter = ""
               ldapDN = "DC=test,DC=local"
-              scope = SearchScope.Subtree
-              ldapHost = "192.168.56.10"
+              scope = Subtree
+              ldapHostname = ""
+              ldapIP = "192.168.56.10"
               ldapPort = 389
               useSsl = false }
           credentials =
@@ -59,7 +58,6 @@ module SearcherTests =
     let private configWithFilter (f: string) : SearcherConfig =
         { baseConfig with ldapDetails = { baseConfig.ldapDetails with filter = f } }
 
-    // ── Tests ────────────────────────────────────────────────────────
 
     let searcherTests =
         testList "Searcher filter construction"

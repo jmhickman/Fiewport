@@ -6,7 +6,7 @@ module Program =
 
     [<Tests>]
     let allTests =
-        testList "Fiewport" 
+        testList "Fiewport"
             [ FilterTests.filterTests
               GPOHandlerTests.handlerTests
               MoldTests.moldTests
@@ -15,7 +15,10 @@ module Program =
               SecurityDescriptorTests.securityDescriptorTests
               ByteHandlerTests.allTests
               SerializerTests.serializerTests
-              SearcherTests.searcherTests ]
+              SearcherTests.searcherTests
+              FauliAuthTests.fauliAuthTests
+              LdapWireTests.allTests
+              LdapSearchTests.allTests ]
 
     [<EntryPoint>]
     let main argv =

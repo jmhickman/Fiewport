@@ -5,11 +5,9 @@ module SerializerTests =
     open System
     open System.IO
     open Expecto
-    open Fiewport
-    open Fiewport.Types
 
-    // The serializer writes to CWD with filenames derived from ldapDN + searchType + config hash.
-    // Each test uses a unique config to avoid file collisions, then cleans up after.
+    open Fiewport
+
 
     let private originalCwd = Directory.GetCurrentDirectory()
 
@@ -34,7 +32,6 @@ module SerializerTests =
             if File.Exists f then
                 try File.Delete f with _ -> ())
 
-    // ── Round-trip tests ─────────────────────────────────────────────
 
     let ``serialize and deserialize round-trips a single result`` () =
         let suffix = Guid.NewGuid().ToString("N")
@@ -42,38 +39,38 @@ module SerializerTests =
         
         try
             let result = 
-                TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap 
+                TestData.mkResult GetUsers cfg (TestData.mkMap 
                     [ "cn", ["Administrator"]
                       "sAMAccountName", ["Administrator"] ])
             let returned = Serializer.serializeToDisk [result]
 
             Expect.equal returned.Length 1 "serialize returns input"
 
-            let file = fullFileName cfg LDAPSearchType.GetUsers
+            let file = fullFileName cfg GetUsers
             Expect.isTrue (File.Exists file) "file created in CWD"
 
             let deserialized = Serializer.deserializeFromDisk file
 
             Expect.equal deserialized.Length 1 "one result restored"
-            Expect.equal deserialized.[0].searchType LDAPSearchType.GetUsers "searchType preserved"
-            Expect.equal deserialized.[0].searchConfig.ldapHost cfg.ldapHost "config preserved"
+            Expect.equal deserialized.[0].searchType GetUsers "searchType preserved"
+            Expect.equal deserialized.[0].searchConfig.ldapHostname cfg.ldapHostname "config preserved"
             Expect.equal (List.length deserialized.[0].ldapData) 1 "data count preserved"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg] [GetUsers]
 
     let ``serialize and deserialize round-trips multiple results`` () =
         let suffix = Guid.NewGuid().ToString("N")
         let cfg = makeConfig suffix
         
         try
-            let r1 = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
-            let r2 = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User2"] ])
-            let r3 = TestData.mkResult LDAPSearchType.GetComputers cfg (TestData.mkMap [ "cn", ["PC1"] ])
+            let r1 = TestData.mkResult GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
+            let r2 = TestData.mkResult GetUsers cfg (TestData.mkMap [ "cn", ["User2"] ])
+            let r3 = TestData.mkResult GetComputers cfg (TestData.mkMap [ "cn", ["PC1"] ])
             Serializer.serializeToDisk [r1; r2; r3] |> ignore
 
-            let usersFile = fullFileName cfg LDAPSearchType.GetUsers
-            let computersFile = fullFileName cfg LDAPSearchType.GetComputers
+            let usersFile = fullFileName cfg GetUsers
+            let computersFile = fullFileName cfg GetComputers
 
             Expect.isTrue (File.Exists usersFile) "users file created"
             Expect.isTrue (File.Exists computersFile) "computers file created"
@@ -84,7 +81,7 @@ module SerializerTests =
             Expect.equal (users.Length + computers.Length) 3 "all three results restored"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers; LDAPSearchType.GetComputers]
+            cleanupFiles [cfg] [GetUsers; GetComputers]
 
     let ``round-trip preserves ldapData content`` () =
         let suffix = Guid.NewGuid().ToString("N")
@@ -97,10 +94,10 @@ module SerializerTests =
                       "adminCount", ["1"]
                       "useraccountcontrol", ["66048"] ]
             
-            let result = TestData.mkResult LDAPSearchType.GetUsers cfg originalMap
+            let result = TestData.mkResult GetUsers cfg originalMap
             Serializer.serializeToDisk [result] |> ignore
 
-            let file = fullFileName cfg LDAPSearchType.GetUsers
+            let file = fullFileName cfg GetUsers
             let deserialized = Serializer.deserializeFromDisk file
             let restoredData = deserialized.[0].ldapData.[0]
 
@@ -110,7 +107,7 @@ module SerializerTests =
                 Expect.equal restoredData.[key] originalMap.[key] $"values for {key} match"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg] [GetUsers]
 
     let ``round-trip preserves error results`` () =
         let suffix = Guid.NewGuid().ToString("N")
@@ -120,7 +117,7 @@ module SerializerTests =
             let errResult = TestData.mkErrorResult cfg "connection refused"
             Serializer.serializeToDisk [errResult] |> ignore
 
-            let file = fullFileName cfg LDAPSearchType.GetUsers
+            let file = fullFileName cfg GetUsers
             let deserialized = Serializer.deserializeFromDisk file
 
             Expect.equal deserialized.Length 1 "error result preserved"
@@ -129,7 +126,7 @@ module SerializerTests =
             | None -> Expect.isTrue false "expected error to be preserved"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg] [GetUsers]
 
     // ── Filename behavior ────────────────────────────────────────────
 
@@ -138,33 +135,33 @@ module SerializerTests =
         let cfg = makeConfig suffix
         
         try
-            let r1 = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
-            let r2 = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User2"] ])
+            let r1 = TestData.mkResult GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
+            let r2 = TestData.mkResult GetUsers cfg (TestData.mkMap [ "cn", ["User2"] ])
             Serializer.serializeToDisk [r1; r2] |> ignore
 
-            let file = fullFileName cfg LDAPSearchType.GetUsers
+            let file = fullFileName cfg GetUsers
             Expect.isTrue (File.Exists file) "single file for identical configs"
 
             let deserialized = Serializer.deserializeFromDisk file
             Expect.equal deserialized.Length 2 "both results in one file"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg] [GetUsers]
 
     let ``different searchType produces separate files`` () =
         let suffix = Guid.NewGuid().ToString("N")
         let cfg = makeConfig suffix
         
         try
-            let r1 = TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
-            let r2 = TestData.mkResult LDAPSearchType.GetComputers cfg (TestData.mkMap [ "cn", ["PC1"] ])
+            let r1 = TestData.mkResult GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])
+            let r2 = TestData.mkResult GetComputers cfg (TestData.mkMap [ "cn", ["PC1"] ])
             Serializer.serializeToDisk [r1; r2] |> ignore
 
-            Expect.isTrue (File.Exists (fullFileName cfg LDAPSearchType.GetUsers)) "users file"
-            Expect.isTrue (File.Exists (fullFileName cfg LDAPSearchType.GetComputers)) "computers file"
+            Expect.isTrue (File.Exists (fullFileName cfg GetUsers)) "users file"
+            Expect.isTrue (File.Exists (fullFileName cfg GetComputers)) "computers file"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers; LDAPSearchType.GetComputers]
+            cleanupFiles [cfg] [GetUsers; GetComputers]
 
     let ``different ldapDN produces separate files`` () =
         let suffix1 = Guid.NewGuid().ToString("N")
@@ -173,46 +170,45 @@ module SerializerTests =
         let cfg2 = makeConfig suffix2
         
         try
-            let r1 = TestData.mkResult LDAPSearchType.GetUsers cfg1 (TestData.mkMap [ "cn", ["User1"] ])
-            let r2 = TestData.mkResult LDAPSearchType.GetUsers cfg2 (TestData.mkMap [ "cn", ["User2"] ])
+            let r1 = TestData.mkResult GetUsers cfg1 (TestData.mkMap [ "cn", ["User1"] ])
+            let r2 = TestData.mkResult GetUsers cfg2 (TestData.mkMap [ "cn", ["User2"] ])
             Serializer.serializeToDisk [r1; r2] |> ignore
 
-            Expect.isTrue (File.Exists (fullFileName cfg1 LDAPSearchType.GetUsers)) "first file"
-            Expect.isTrue (File.Exists (fullFileName cfg2 LDAPSearchType.GetUsers)) "second file"
+            Expect.isTrue (File.Exists (fullFileName cfg1 GetUsers)) "first file"
+            Expect.isTrue (File.Exists (fullFileName cfg2 GetUsers)) "second file"
         
         finally
-            cleanupFiles [cfg1; cfg2] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg1; cfg2] [GetUsers]
 
-    let ``different ldapHost produces separate files`` () =
+    let ``different ldap endpoint produces separate files`` () =
         let suffix = Guid.NewGuid().ToString("N")
         let cfg1 = makeConfig suffix
-        let cfg2 = { cfg1 with ldapHost = "other-host" }
+        let cfg2 = { cfg1 with ldapHostname = "other-host"; ldapIP = ""}
         
         try
-            let r1 = TestData.mkResult LDAPSearchType.GetUsers cfg1 (TestData.mkMap [ "cn", ["User1"] ])
-            let r2 = TestData.mkResult LDAPSearchType.GetUsers cfg2 (TestData.mkMap [ "cn", ["User2"] ])
+            let r1 = TestData.mkResult GetUsers cfg1 (TestData.mkMap [ "cn", ["User1"] ])
+            let r2 = TestData.mkResult GetUsers cfg2 (TestData.mkMap [ "cn", ["User2"] ])
             Serializer.serializeToDisk [r1; r2] |> ignore
 
-            // Same ldapDN + searchType, but different ldapHost → separate files
-            Expect.isTrue (File.Exists (fullFileName cfg1 LDAPSearchType.GetUsers)) "first config file"
-            Expect.isTrue (File.Exists (fullFileName cfg2 LDAPSearchType.GetUsers)) "second config file"
-            Expect.notEqual (fullFileName cfg1 LDAPSearchType.GetUsers) (fullFileName cfg2 LDAPSearchType.GetUsers) "filenames differ"
+            Expect.isTrue (File.Exists (fullFileName cfg1 GetUsers)) "first config file"
+            Expect.isTrue (File.Exists (fullFileName cfg2 GetUsers)) "second config file"
+            Expect.notEqual (fullFileName cfg1 GetUsers) (fullFileName cfg2 GetUsers) "filenames differ"
         
         finally
-            cleanupFiles [cfg1; cfg2] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg1; cfg2] [GetUsers]
 
     let ``serializeToDisk pass-throughs input for pipeline use`` () =
         let suffix = Guid.NewGuid().ToString("N")
         let cfg = makeConfig suffix
         
         try
-            let results = [TestData.mkResult LDAPSearchType.GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])]
+            let results = [TestData.mkResult GetUsers cfg (TestData.mkMap [ "cn", ["User1"] ])]
             let returned = Serializer.serializeToDisk results
 
             Expect.equal returned results "returns input list"
         
         finally
-            cleanupFiles [cfg] [LDAPSearchType.GetUsers]
+            cleanupFiles [cfg] [GetUsers]
 
     // ── Empty / edge cases ───────────────────────────────────────────
 
@@ -232,7 +228,7 @@ module SerializerTests =
               testCase "identical configs group into one file" ``identical configs group into one file``
               testCase "different searchType produces separate files" ``different searchType produces separate files``
               testCase "different ldapDN produces separate files" ``different ldapDN produces separate files``
-              testCase "different ldapHost produces separate files" ``different ldapHost produces separate files``
+              testCase "different ldap endpoint produces separate files" ``different ldap endpoint produces separate files``
               testCase "serializeToDisk returns the original results" ``serializeToDisk pass-throughs input for pipeline use``
               testCase "serialize empty list does not crash" ``serialize empty list does not crash``
               testCase "deserialize non-existent file throws" ``deserialize non-existent file throws`` ]

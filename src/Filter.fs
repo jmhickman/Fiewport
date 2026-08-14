@@ -2,6 +2,7 @@
 
 module Filter =
     
+    
     ///
     ///<summary>
     /// Filters LDAPSearchResults based upon the presence of the supplied <c>filterAttribute</c> key in the

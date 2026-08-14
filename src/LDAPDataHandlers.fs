@@ -401,11 +401,6 @@ module LDAPDataHandlers =
          | false -> map
 
 
-    ///
-    /// Attribute format: [{CSE_GUID}{AdminTool_GUID}][{CSE_GUID}{AdminTool_GUID}]...
-    /// Each [] block pairs a CSE GUID with its Admin Tool extension GUID.
-    /// Example: [{827D319E-6EAC-11D2-A4EA-00C04F79F83A}{803E14A0-B4FB-11D0-A0D0-00A0C90F574B}]
-    /// 
     let handleGroupPolicyCseGuids (map: LDAPEntryData) : LDAPEntryData =
         let pairPattern = Regex regexGUIDPattern
 

@@ -10,6 +10,15 @@ module PrettyPrinter =
         let keys = [for key in map.Keys do yield key]
         keys |> List.map (fun key -> node ([MCD (Color.LightCyan3, [Decoration.Bold], key); NL] |> Many) [for value in map[key] do yield node ([MC (Color.White, value)] |> Many) []])
 
+    
+    ///
+    /// Format the authentication method for display on the info line.
+    let private formatAuthMethod (authMethod: Fauli.Domain.AuthenticationMethod) : string =
+        match authMethod with
+        | Fauli.Domain.AuthenticationMethod.Kerberos -> "Kerberos TGS"
+        | Fauli.Domain.AuthenticationMethod.NetNTLMv2 -> "NTLM"
+        | _ -> authMethod.ToString()
+
 
     ///
     /// Simple MailboxProcessor for handling printing. All console output from the library flows through here, so there
@@ -27,6 +36,10 @@ module PrettyPrinter =
 
             match msg.ldapSearcherError with
             | None ->
+                match msg.authenticationMethod with
+                | Some authMethod ->
+                    MC (Color.DarkCyan, $"[i] Auth: {formatAuthMethod authMethod} to {msg.searchConfig.ldapHostname}") |> toConsole
+                | None -> ()
                 match data.Length = 0 with
                 | true -> 
                     MC (Color.Red, "No Results. If unexpected, check your script") |> toConsole
@@ -97,6 +110,7 @@ module PrettyPrinter =
     /// |> PrettyPrinter.listPrinter "Distinguished Names"
     /// </code>
     /// </summary>
+    /// 
     let listPrinter label inputList =
         MCD (Color.PaleGreen3, [Decoration.Underline], $"======= {label} =======") |> toConsole
         let nodes = inputList |> List.map (fun s -> node ([MC (Color.White, s)] |> Many) [])

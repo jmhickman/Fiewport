@@ -3,6 +3,7 @@ namespace Fiewport
 module Serializer =
     
     open System.IO
+
     open MessagePack
     open MessagePack.FSharp
     open MessagePack.Resolvers
@@ -14,6 +15,12 @@ module Serializer =
             .WithCompression(MessagePackCompression.Lz4BlockArray)
 
 
+    let private fileName (result: LDAPSearchResult) =
+        let hashSuffix = result.searchConfig.GetHashCode() |> abs |> sprintf "%06X"
+        $"{result.searchConfig.ldapDN}-{result.searchType}-{hashSuffix}-lcache.bin"
+
+
+    ///
     ///<summary>
     ///Serializes a list of LDAPSearchResult records to disk using MessagePack.
     ///</summary>
@@ -22,10 +29,7 @@ module Serializer =
     ///<exception cref="System.IO.IOException">
     ///    Thrown if there is an error accessing or writing to the disk file.
     ///</exception>
-    let private fileName (result: LDAPSearchResult) =
-        let hashSuffix = result.searchConfig.GetHashCode() |> abs |> sprintf "%06X"
-        $"{result.searchConfig.ldapDN}-{result.searchType}-{hashSuffix}-lcache.bin"
-
+    /// 
     let serializeToDisk (results: LDAPSearchResult list) =
         results
         |> List.groupBy fileName
@@ -35,6 +39,7 @@ module Serializer =
         results
 
         
+    ///
     ///<summary>
     ///Deserializes a list of LDAPSearchResult records from a specified binary file using MessagePack.
     ///</summary>
@@ -43,6 +48,7 @@ module Serializer =
     ///<exception cref="System.IO.IOException">
     ///    Thrown if there is an error accessing or reading from the specified file.
     ///</exception>
+    /// 
     let deserializeFromDisk path =
         use fileStream = new FileStream(path, FileMode.Open)
         MessagePackSerializer.Deserialize<LDAPSearchResult list>(fileStream, resolver)

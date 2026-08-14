@@ -34,19 +34,22 @@ module TestData =
         { searchType = searchType
           searchConfig = config
           ldapSearcherError = None
-          ldapData = [data] }
+          ldapData = [data]
+          authenticationMethod = None }
 
     let mkMultiResult (searchType : LDAPSearchType) (config : LdapSearchConfig) (maps : Map<string, string list> list) =
         { searchType = searchType
           searchConfig = config
           ldapSearcherError = None
-          ldapData = maps }
+          ldapData = maps
+          authenticationMethod = None }
 
     let mkErrorResult (config : LdapSearchConfig) (message : string) =
         { searchType = GetUsers
           searchConfig = config
           ldapSearcherError = Some { message = message; context = "search" }
-          ldapData = [Map.empty] }
+          ldapData = [Map.empty]
+          authenticationMethod = None }
 
 
     let adminUser =
@@ -174,7 +177,8 @@ module TestData =
         { searchType = GetDomainTrusts
           searchConfig = defaultLdapDetails
           ldapSearcherError = None
-          ldapData = [] }
+          ldapData = []
+          authenticationMethod = None }
 
 
     let gpoWithSecurityExtension =

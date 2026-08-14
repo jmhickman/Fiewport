@@ -3,8 +3,8 @@
 [<AutoOpen>]
 module Types =
 
-    
     open MessagePack
+    open Fauli.Domain
 
     /// <summary>Search scope for LDAP queries.</summary>
     type SearchScope =
@@ -13,11 +13,10 @@ module Types =
         | Subtree
 
     ///
-    /// <summary>Representation of unboxed data from an LDAP query.</summary>
-    /// <remarks>Some of these datatypes are speculation and aren't confirmed in real results.
+    /// Representation of unboxed data from an LDAP query.
+    /// Some of these datatypes are speculation and aren't confirmed in real results.
     /// I have access to a limited AD that is very simplistic, so verifying all of these is likely
     /// impossible for me alone.
-    /// </remarks>
     /// 
     type internal ADDataTypes =       
         | ADBytes of byte array 
@@ -27,6 +26,8 @@ module Types =
     type internal RawLdapEntry =
         { DN : string
           Attributes : Map<string, byte array list> }    
+
+
     ///
     /// <summary>
     /// Authentication credentials for LDAP connection.
@@ -36,6 +37,7 @@ module Types =
     type LdapCredentials =
         { username: string
           password: string }
+
 
     ///
     /// <summary>
@@ -116,7 +118,6 @@ module Types =
     
     ///
     /// <summary>Represents a single LDAP entry as a map of attribute names to decoded string values.</summary>
-    ///
     type internal LDAPEntryData = Map<string, string list>
 
 
@@ -141,7 +142,8 @@ module Types =
         { [<Key(0)>]searchType: LDAPSearchType 
           [<Key(1)>]searchConfig: LdapSearchConfig
           [<Key(2)>]ldapSearcherError: LdapError option
-          [<Key(3)>]ldapData: LDAPEntryData list }
+          [<Key(3)>]ldapData: LDAPEntryData list
+          [<Key(4)>]authenticationMethod: Fauli.Domain.AuthenticationMethod option }
 
     
     ///
@@ -182,6 +184,195 @@ module Types =
 
 
     ///
+    /// An LDAP message received from the wire.
+    /// PDUs are the protocolOp TLVs (e.g. APPLICATION 4/5/19). Controls, when
+    /// present on SearchResultDone, are the raw [0] context TLV.
+    ///
+    type internal LdapMessage =
+        | SearchResultEntry of pdu: byte array
+        | SearchResultDone of pdu: byte array * controls: byte array option
+        | SearchReference of pdu: byte array
+        | OtherProtocolOp of tag: byte * pdu: byte array
+
+
+    ///
+    /// Result code from a SearchResultDone response (RFC 4511 §4.1.9).
+    type internal SearchResultStatus =
+        | Success
+        | OperationsError
+        | ProtocolError
+        | TimeLimitExceeded
+        | SizeLimitExceeded
+        | CompareFalse
+        | CompareTrue
+        | AuthMethodNotSupported
+        | StrongerAuthRequired
+        | Referral
+        | AdminLimitExceeded
+        | UnavailableCriticalExtension
+        | ConfidentialityRequired
+        | SaslBindInProgress
+        | NoSuchAttribute
+        | UndefinedAttributeType
+        | InappropriateMatching
+        | ConstraintViolation
+        | AttributeOrValueExists
+        | InvalidAttributeSyntax
+        | NoSuchObject
+        | AliasProblem
+        | InvalidDNSyntax
+        | AliasDereferencingProblem
+        | InappropriateAuthentication
+        | InvalidCredentials
+        | InsufficientAccessRights
+        | Busy
+        | Unavailable
+        | UnwillingToPerform
+        | LoopDetect
+        | NamingViolation
+        | ObjectClassViolation
+        | NotAllowedOnNonLeaf
+        | NotAllowedOnRDN
+        | EntryAlreadyExists
+        | ObjectClassModsProhibited
+        | AffectsMultipleDSAs
+        | Other of string
+
+        static member FromCode (code: int32) : SearchResultStatus =
+            match code with
+            | 0  -> Success
+            | 1  -> OperationsError
+            | 2  -> ProtocolError
+            | 3  -> TimeLimitExceeded
+            | 4  -> SizeLimitExceeded
+            | 5  -> CompareFalse
+            | 6  -> CompareTrue
+            | 7  -> AuthMethodNotSupported
+            | 8  -> StrongerAuthRequired
+            | 10 -> Referral
+            | 11 -> AdminLimitExceeded
+            | 12 -> UnavailableCriticalExtension
+            | 13 -> ConfidentialityRequired
+            | 14 -> SaslBindInProgress
+            | 16 -> NoSuchAttribute
+            | 17 -> UndefinedAttributeType
+            | 18 -> InappropriateMatching
+            | 19 -> ConstraintViolation
+            | 20 -> AttributeOrValueExists
+            | 21 -> InvalidAttributeSyntax
+            | 32 -> NoSuchObject
+            | 33 -> AliasProblem
+            | 34 -> InvalidDNSyntax
+            | 36 -> AliasDereferencingProblem
+            | 48 -> InappropriateAuthentication
+            | 49 -> InvalidCredentials
+            | 50 -> InsufficientAccessRights
+            | 51 -> Busy
+            | 52 -> Unavailable
+            | 53 -> UnwillingToPerform
+            | 54 -> LoopDetect
+            | 64 -> NamingViolation
+            | 65 -> ObjectClassViolation
+            | 66 -> NotAllowedOnNonLeaf
+            | 67 -> NotAllowedOnRDN
+            | 68 -> EntryAlreadyExists
+            | 69 -> ObjectClassModsProhibited
+            | 71 -> AffectsMultipleDSAs
+            | _  -> Other $"LDAP error code {code}"
+
+
+    ///
+    /// Components of an LDAP(S) URL relevant to referral chasing (RFC 4516).
+    type internal ParsedLdapUrl =
+        { schemeIsSsl : bool
+          host : string option
+          port : int option
+          dn : string option }
+
+
+    ///
+    /// Normalized chase destination — visited-set key and config seed.
+    type internal ReferralTarget =
+        { host : string
+          port : int
+          useSsl : bool
+          baseDn : string }
+
+
+    ///
+    /// State threaded through the paging loop on a single server.
+    type internal PagingState =
+        { entries : RawLdapEntry list
+          referralUris : string list
+          messageId : int32 }
+
+
+    ///
+    /// State threaded through transparent referral chase.
+    type internal ChaseState =
+        { visited : Set<ReferralTarget>
+          entries : RawLdapEntry list
+          queue : string list
+          abandonedAuth : bool }
+
+
+    ///
+    /// One server's search outcome before chase: entries plus referral URI strings.
+    type internal ServerSearchOutcome =
+        { entries : RawLdapEntry list
+          referralUris : string list }
+
+
+    ///
+    /// Injected dependency: bind+search a single server (no nested chase).
+    type internal SearchOneServer = LdapSearchConfig -> Result<ServerSearchOutcome, LdapWireError>
+
+
+    ///
+    /// Outcome of inspecting one Control TLV while hunting the paged-results cookie.
+    type internal CookieSearchStep =
+        | CookieFound of byte array option
+        | KeepSearching
+
+
+    ///
+    /// Split of an LDAPMessage or bare protocolOp: optional message id, PDU TLV, optional controls.
+    type internal WireSplit = int32 option * byte array * byte array option
+
+
+    ///
+    /// Resolved Fauli host roles after applying ldapHostname / ldapIP rules.
+    ///
+    type internal ResolvedLdapEndpoints =
+        { connectHost : string
+          kdcHost : string
+          spnHost : string }
+
+
+    ///
+    /// Fauli Host triple used to build an AuthenticationRequest.
+    type internal ResolvedFauliHosts =
+        { connectHost : Fauli.Domain.Host
+          kdcHost : Fauli.Domain.Host
+          spnHost : Fauli.Domain.Host }
+
+
+    ///
+    /// Parameters for encoding a complete LDAPMessage SearchRequest (RFC 4511 §4.5.1).
+    /// Field names are distinct from <c>LdapSearchConfig</c> so copy-and-update inference stays unambiguous.
+    type internal SearchRequestToEncode =
+        { messageId : int32
+          baseObject : string
+          searchScopeByte : byte
+          derefAliases : byte
+          sizeLimit : int32
+          timeLimit : int32
+          typesOnly : bool
+          searchFilter : string
+          attributeNames : string array }
+
+
+    ///
     /// <summary>
     /// Represents an authenticated LDAP session returned by the Fauli adapter.
     /// Wraps the underlying <c>NetworkStream</c> and owns the message ID counter
@@ -190,24 +381,28 @@ module Types =
     /// </summary>
     ///
     type AuthenticatedLdapSession =
-        { Stream : System.IO.Stream
+        { stream : System.IO.Stream
           mutable messageId : int32
-          BoundAs : string option }
+          boundAs : string option
+          authenticationMethod: AuthenticationMethod  }
 
+    ///
+    /// Create a new session with the given stream and starting message ID.
+    /// When called, nextMessageId is 2 (1 is for the SASL bind).
+    ///
     module AuthenticatedLdapSession =
-        /// Create a new session with the given stream and starting message ID.
-        /// When called, nextMessageId is 2 (1 is for the SASL bind).
-        let create (stream : System.IO.Stream) (nextMessageId : int) : AuthenticatedLdapSession =
-            { Stream = stream
-              messageId = nextMessageId
-              BoundAs = None }
 
-        /// Atomically allocate the next message ID and advance the counter.
-        let allocateMessageId (session : AuthenticatedLdapSession) : int32 =
+        let create (stream : System.IO.Stream) (nextMessageId : int) authMethod : AuthenticatedLdapSession =
+            { stream = stream
+              messageId = nextMessageId
+              boundAs = None
+              authenticationMethod = authMethod }
+
+
+        ///
+        /// Atomically increment the next message ID and advance the counter.
+        let incrementMessageId (session : AuthenticatedLdapSession) : int32 =
             let id = session.messageId
             session.messageId <- id + 1
             id
-
-
-
 

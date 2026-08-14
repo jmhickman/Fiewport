@@ -5,6 +5,9 @@ module LdapSearchTests =
     open System
     open Expecto
     open Fiewport
+    open Fiewport.Types
+    open Fiewport.LdapSearch
+    open Fiewport.LdapWire
 
     let private sampleConfig =
         { properties = [| "cn" |]
@@ -19,6 +22,11 @@ module LdapSearchTests =
     let private entry dn attrs : RawLdapEntry =
         { DN = dn
           Attributes = Map.ofList attrs }
+
+    let private sslPrimary =
+        { sampleConfig with
+            useSsl = true
+            ldapPort = 636 }
 
     let private allTestsBody =
         testList "LDAPUtils result pipeline"
@@ -62,7 +70,7 @@ module LdapSearchTests =
                               "objectguid", [ guidBytes ] ] ]
 
                   let result =
-                      LDAPUtils.createLDAPSearchResults LDAPSearchType.GetUsers sampleConfig (Ok entries)
+                      LDAPUtils.createLDAPSearchResults LDAPSearchType.GetUsers sampleConfig (Ok (entries, Fauli.Domain.AuthenticationMethod.Kerberos))
 
                   Expect.equal result.searchType LDAPSearchType.GetUsers "search type"
                   Expect.equal result.searchConfig sampleConfig "config preserved"
@@ -89,6 +97,135 @@ module LdapSearchTests =
                       Expect.equal e.context "search" "context"
                   | None -> failtest "expected ldapSearcherError"
                   Expect.equal result.ldapData [ Map.empty ] "empty data placeholder on error"
-              }]
+              } ]
 
-    let allTests = allTestsBody
+    let private chaseTests =
+        testList "referral chase"
+            [ test "buildChaseConfig preserves filter scope properties; takes host port dn ssl" {
+                  match parseLdapUrl "ldap://child.example.com:389/DC=child,DC=example,DC=com??sub?" with
+                  | Error e -> failtest $"parse failed: {e}"
+                  | Ok parsed ->
+                      match buildReferralTarget sampleConfig parsed with
+                      | Error e -> failtest $"target failed: {e}"
+                      | Ok target ->
+                          let chase = buildChaseConfig sampleConfig target
+                          Expect.equal chase.filter sampleConfig.filter "filter"
+                          Expect.equal chase.scope sampleConfig.scope "scope"
+                          Expect.equal chase.properties sampleConfig.properties "properties"
+                          Expect.equal chase.ldapHostname "child.example.com" "host"
+                          Expect.equal chase.ldapIP "" "ip empty for hostname"
+                          Expect.equal chase.ldapPort 389 "port"
+                          Expect.equal chase.ldapDN "DC=child,DC=example,DC=com" "base DN from URL"
+                          Expect.equal chase.useSsl false "plain"
+              }
+
+              test "ldap:// default port inherits primary LDAPS transport" {
+                  match parseLdapUrl "ldap://child.example.com/DC=child,DC=example,DC=com" with
+                  | Error e -> failtest $"parse: {e}"
+                  | Ok parsed ->
+                      match buildReferralTarget sslPrimary parsed with
+                      | Error e -> failtest $"target: {e}"
+                      | Ok target ->
+                          Expect.equal target.useSsl true "inherit ssl"
+                          Expect.equal target.port 636 "ssl default port"
+              }
+
+              test "ldaps:// forces TLS even when primary is plain" {
+                  match parseLdapUrl "ldaps://secure.example.com/DC=example,DC=com" with
+                  | Error e -> failtest $"parse: {e}"
+                  | Ok parsed ->
+                      match buildReferralTarget sampleConfig parsed with
+                      | Error e -> failtest $"target: {e}"
+                      | Ok target ->
+                          Expect.equal target.useSsl true "ldaps"
+                          Expect.equal target.port 636 "default ldaps port"
+              }
+
+              test "empty-host URL reuses primary host" {
+                  match parseLdapUrl "ldap:///DC=ForestDnsZones,DC=example,DC=com" with
+                  | Error e -> failtest $"parse: {e}"
+                  | Ok parsed ->
+                      match buildReferralTarget sampleConfig parsed with
+                      | Error e -> failtest $"target: {e}"
+                      | Ok target ->
+                          Expect.equal target.host "dc.example.com" "primary host"
+                          Expect.equal target.baseDn "DC=ForestDnsZones,DC=example,DC=com" "dn from url"
+              }
+
+              test "chaseReferrals merges successful branch entries" {
+                  let childEntry =
+                      entry "CN=bob,DC=child,DC=example,DC=com"
+                          [ "cn", [ Text.Encoding.UTF8.GetBytes "bob" ] ]
+                  let seed =
+                      [ entry "CN=alice,DC=example,DC=com"
+                            [ "cn", [ Text.Encoding.UTF8.GetBytes "alice" ] ] ]
+                  let searchOne : SearchOneServer =
+                      fun cfg ->
+                          Expect.equal cfg.filter sampleConfig.filter "chase filter"
+                          Expect.equal cfg.scope sampleConfig.scope "chase scope"
+                          Expect.equal cfg.ldapHostname "child.example.com" "chase host"
+                          Ok
+                              { entries = [ childEntry ]
+                                referralUris = [] }
+                  match primaryReferralTarget sampleConfig with
+                  | Error e -> failtest $"primary target: {e}"
+                  | Ok primaryTarget ->
+                      match chaseReferrals searchOne sampleConfig primaryTarget seed [ "ldap://child.example.com/DC=child,DC=example,DC=com" ] with
+                      | Error e -> failtest $"chase failed: {e}"
+                      | Ok entries ->
+                          Expect.equal entries.Length 2 "seed + chased"
+                          Expect.equal entries.[0].DN "CN=alice,DC=example,DC=com" "seed first"
+                          Expect.equal entries.[1].DN "CN=bob,DC=child,DC=example,DC=com" "chased second"
+              }
+
+              test "chaseReferrals skips already-visited targets (loop)" {
+                  let mutable calls = 0
+                  let searchOne : SearchOneServer =
+                      fun _ ->
+                          calls <- calls + 1
+                          Ok
+                              { entries = []
+                                // refers back to primary host/dn
+                                referralUris = [ "ldap://dc.example.com:389/DC=example,DC=com" ] }
+                  match primaryReferralTarget sampleConfig with
+                  | Error e -> failtest $"primary: {e}"
+                  | Ok primaryTarget ->
+                      // Seed URI points at a *different* host so first chase runs once and returns loop URI
+                      match chaseReferrals searchOne sampleConfig primaryTarget [] [ "ldap://other.example.com/DC=other,DC=com" ] with
+                      | Error e -> failtest $"chase: {e}"
+                      | Ok _ ->
+                          Expect.equal calls 1 "only one chase call; primary re-visit skipped"
+              }
+
+              test "chaseReferrals soft-fails branch and keeps seed entries" {
+                  let seed =
+                      [ entry "CN=alice,DC=example,DC=com"
+                            [ "cn", [ Text.Encoding.UTF8.GetBytes "alice" ] ] ]
+                  let searchOne : SearchOneServer =
+                      fun _ -> Error (BindFailed "bad password on child")
+                  match primaryReferralTarget sampleConfig with
+                  | Error e -> failtest $"primary: {e}"
+                  | Ok primaryTarget ->
+                      match chaseReferrals searchOne sampleConfig primaryTarget seed [ "ldap://child.example.com/DC=child,DC=com" ] with
+                      | Error e -> failtest $"should keep seed, got {e}"
+                      | Ok entries ->
+                          Expect.equal entries.Length 1 "seed retained"
+                          Expect.equal entries.[0].DN "CN=alice,DC=example,DC=com" "alice"
+              }
+
+              test "chaseReferrals empty seed and all branches fail → BindFailed" {
+                  let searchOne : SearchOneServer =
+                      fun _ -> Error (ConnectionFailed "down")
+                  match primaryReferralTarget sampleConfig with
+                  | Error e -> failtest $"primary: {e}"
+                  | Ok primaryTarget ->
+                      match chaseReferrals searchOne sampleConfig primaryTarget [] [ "ldap://child.example.com/DC=child,DC=com" ] with
+                      | Error (BindFailed msg) ->
+                          Expect.stringContains msg "Referral chase failed" "bind-style finalize"
+                      | other -> failtest $"expected BindFailed, got {other}"
+              } ]
+
+    let allTests =
+        testList "LdapSearch"
+            [ allTestsBody
+              chaseTests ]

@@ -17,6 +17,7 @@
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\"/>
         <Content Include="LICENSE" />
+        <Compile Include="src\AssemblyInfo.fs"/>
         <Compile Include="src\Types.fs" />
         <Compile Include="src\FileOperations.fs" />
         <Compile Include="src\FauliAuth.fs" />
@@ -34,6 +35,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="../Fauli/Fauli.fsproj"/>
       <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.54.7" />
       <PackageReference Include="Fauli" Version="2026.8.13" />
       <PackageReference Include="MessagePack" Version="3.1.8" />

@@ -5,7 +5,7 @@ open Types
 module Tee =
 
 
-    /// TODO: Expand docstring to cover filter composition
+    ///
     /// <summary>
     /// <para><c>Tee.filter</c> allows a specific filter (or sequence of filters) to be run against an incoming
     /// set of <c>LDAPSearchResults</c>, applying a unit function to the output, and then returning the original

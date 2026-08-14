@@ -36,27 +36,30 @@ module FauliAuthTests =
     let fauliAuthTests =
         testList "FauliAuth"
             [ testList "resolveLdapEndpoints"
-                  [ test "both hostname and IP: session=hostname, auth=IP" {
+                  [ test "both hostname and IP: connect=hostname, kdc=IP, spn=hostname" {
                         match FauliAuth.resolveLdapEndpoints "dc.ad-lab.local" "192.168.10.38" with
                         | Ok e ->
-                            Expect.equal e.sessionHost "dc.ad-lab.local" "SPN/session host"
-                            Expect.equal e.authenticatingHost "192.168.10.38" "KDC host"
+                            Expect.equal e.connectHost "dc.ad-lab.local" "TCP connect host"
+                            Expect.equal e.kdcHost "192.168.10.38" "KDC host"
+                            Expect.equal e.spnHost "dc.ad-lab.local" "SPN hostname"
                         | Error e -> failtest $"unexpected error: {e}"
                     }
 
-                    test "hostname only: both roles use hostname" {
+                    test "hostname only: all roles use hostname" {
                         match FauliAuth.resolveLdapEndpoints "dc.ad-lab.local" "" with
                         | Ok e ->
-                            Expect.equal e.sessionHost "dc.ad-lab.local" "session"
-                            Expect.equal e.authenticatingHost "dc.ad-lab.local" "auth"
+                            Expect.equal e.connectHost "dc.ad-lab.local" "connect"
+                            Expect.equal e.kdcHost "dc.ad-lab.local" "kdc"
+                            Expect.equal e.spnHost "dc.ad-lab.local" "spn"
                         | Error e -> failtest $"unexpected error: {e}"
                     }
 
-                    test "IP only: both roles use IP (Kerberos SPN will fail → NTLM)" {
+                    test "IP only: all roles use IP (Kerberos SPN will fail → NTLM)" {
                         match FauliAuth.resolveLdapEndpoints "" "192.168.10.38" with
                         | Ok e ->
-                            Expect.equal e.sessionHost "192.168.10.38" "session"
-                            Expect.equal e.authenticatingHost "192.168.10.38" "auth"
+                            Expect.equal e.connectHost "192.168.10.38" "connect"
+                            Expect.equal e.kdcHost "192.168.10.38" "kdc"
+                            Expect.equal e.spnHost "192.168.10.38" "spn"
                         | Error e -> failtest $"unexpected error: {e}"
                     }
 
@@ -73,24 +76,22 @@ module FauliAuthTests =
                         | other -> failtest $"expected Unexpected, got {other}"
                     } ]
 
-
               testList "AuthenticatedLdapSession"
                   [ test "allocateMessageId returns the start id then increments" {
                         use ms = new MemoryStream()
                         // Fauli NTLM bind consumes ids 1 and 2 → next is 3
-                        let session = AuthenticatedLdapSession.create ms 3
-                        Expect.equal (AuthenticatedLdapSession.allocateMessageId session) 3 "first"
-                        Expect.equal (AuthenticatedLdapSession.allocateMessageId session) 4 "second"
-                        Expect.equal (AuthenticatedLdapSession.allocateMessageId session) 5 "third"
+                        let session = AuthenticatedLdapSession.create ms 3 Kerberos
+                        Expect.equal (AuthenticatedLdapSession.incrementMessageId session) 3 "first"
+                        Expect.equal (AuthenticatedLdapSession.incrementMessageId session) 4 "second"
+                        Expect.equal (AuthenticatedLdapSession.incrementMessageId session) 5 "third"
                         Expect.equal session.messageId 6 "counter advanced"
                     }
 
                     test "create preserves the stream reference used for subsequent wire I/O" {
                         use ms = new MemoryStream()
-                        let session = AuthenticatedLdapSession.create ms 2
-                        Expect.isTrue (obj.ReferenceEquals(session.Stream, ms)) "same stream"
+                        let session = AuthenticatedLdapSession.create ms 2 Kerberos
+                        Expect.isTrue (obj.ReferenceEquals(session.stream, ms)) "same stream"
                     } ]
-
 
               testList "mapAuthError"
                   [ test "maps every AuthError case into a non-wire LdapWireError kind" {
@@ -149,7 +150,6 @@ module FauliAuthTests =
                             Expect.stringContains msg "password" "mentions password"
                         | other -> failtest $"expected BindFailed, got {other}"
                     } ]
-
 
               testList "authenticate boundary"
                   [ test "empty hostname and IP fails locally with Unexpected" {

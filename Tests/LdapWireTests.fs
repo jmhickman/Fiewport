@@ -103,8 +103,9 @@ module LdapWireTests =
                   | Ok (SearchResultDone (pdu, controls)) ->
                       Expect.equal pdu.[0] 0x65uy "APPLICATION 5"
                       Expect.isNone controls "no controls"
-                      let _, status = parseSearchResultDone pdu |> expectOk
+                      let _, status, refs = parseSearchResultDone pdu |> expectOk
                       Expect.equal status Success "success"
+                      Expect.isEmpty refs "no referrals on simple success"
                   | Ok other -> failtest $"unexpected message: {other}"
                   | Error e -> failtest $"receive failed: {e}"
               }
@@ -243,9 +244,15 @@ module LdapWireTests =
             [ test "encodeSearchRequest builds APPLICATION 3 with Filter CHOICE, not text" {
                   let encoded =
                       encodeSearchRequest
-                          2 "dc=example,dc=com" 2uy 0uy 1000 30 false
-                          "(&(objectClass=person)(uid=jdoe))"
-                          [| "*"; "+" |]
+                          { messageId = 2
+                            baseObject = "dc=example,dc=com"
+                            searchScopeByte = 2uy
+                            derefAliases = 0uy
+                            sizeLimit = 1000
+                            timeLimit = 30
+                            typesOnly = false
+                            searchFilter = "(&(objectClass=person)(uid=jdoe))"
+                            attributeNames = [| "*"; "+" |] }
 
                   Expect.equal encoded.[0] 0x30uy "outer LDAPMessage SEQUENCE"
                   let fields = parseBerSequence encoded |> expectOk
@@ -265,9 +272,15 @@ module LdapWireTests =
               test "base-scope domain SID style request uses equality filter and attr list" {
                   let encoded =
                       encodeSearchRequest
-                          3 "DC=ad-lab,DC=local" 0uy 0uy 0 0 false
-                          "(objectClass=domain)"
-                          [| "objectSid" |]
+                          { messageId = 3
+                            baseObject = "DC=ad-lab,DC=local"
+                            searchScopeByte = 0uy
+                            derefAliases = 0uy
+                            sizeLimit = 0
+                            timeLimit = 0
+                            typesOnly = false
+                            searchFilter = "(objectClass=domain)"
+                            attributeNames = [| "objectSid" |] }
                   let searchReq =
                       match parseBerSequence encoded |> expectOk with
                       | _ :: req :: _ -> req
@@ -308,22 +321,40 @@ module LdapWireTests =
 
               test "parseSearchResultDone accepts ENUMERATED resultCode (AD wire shape)" {
                   let pdu = hexToBytes "65 07 0a 01 00 04 00 04 00"
-                  let _, status = parseSearchResultDone pdu |> expectOk
+                  let _, status, refs = parseSearchResultDone pdu |> expectOk
                   Expect.equal status Success "success via ENUMERATED"
+                  Expect.isEmpty refs "no referrals"
               }
 
               test "parseSearchResultDone accepts full LDAPMessage with INTEGER resultCode" {
                   let wire = hexToBytes "30 0c 02 01 02 65 07 02 01 00 04 00 04 00"
-                  let msgId, status = parseSearchResultDone wire |> expectOk
+                  let msgId, status, refs = parseSearchResultDone wire |> expectOk
                   Expect.equal msgId 2 "message id"
                   Expect.equal status Success "success"
+                  Expect.isEmpty refs "no referrals"
               }
 
               test "parseSearchResultDone maps non-zero result codes" {
                   // APPLICATION 5, ENUMERATED 32 (noSuchObject)
                   let pdu = hexToBytes "65 07 0a 01 20 04 00 04 00"
-                  let _, status = parseSearchResultDone pdu |> expectOk
+                  let _, status, _ = parseSearchResultDone pdu |> expectOk
                   Expect.equal status NoSuchObject "noSuchObject"
+              }
+
+              test "parseSearchResultDone extracts LDAPResult referral URIs" {
+                  // APPLICATION 5: ENUMERATED 10 (referral), empty matchedDN/diag, [3] one URI
+                  let uri = utf8.GetBytes "ldap://child.example.com/dc=child,dc=example,dc=com"
+                  let referralSeq = encodeBerPrimitive 0xA3uy (encodeBerOctetString uri)
+                  let content =
+                      Array.concat
+                          [ encodeBerEnumerated 10
+                            encodeBerOctetString [||]
+                            encodeBerOctetString [||]
+                            referralSeq ]
+                  let pdu = encodeBerPrimitive 0x65uy content
+                  let _, status, refs = parseSearchResultDone pdu |> expectOk
+                  Expect.equal status Referral "referral status"
+                  Expect.equal refs [ "ldap://child.example.com/dc=child,dc=example,dc=com" ] "uri"
               }
 
               test "parseSearchReference decodes two referral URIs" {
@@ -334,6 +365,26 @@ module LdapWireTests =
                   Expect.equal uris.Length 2 "two URIs"
                   Expect.isTrue (List.contains "ldap://ds1.example.com:389/dc=example,dc=com??sub?" uris) "ds1"
                   Expect.isTrue (List.contains "ldap://ds2.example.com:389/dc=example,dc=com??sub?" uris) "ds2"
+              }
+
+              test "parseLdapUrl reads host port dn and ignores query" {
+                  let parsed =
+                      parseLdapUrl "ldap://ds1.example.com:389/dc=example,dc=com??sub?"
+                      |> expectOk
+                  Expect.equal parsed.schemeIsSsl false "ldap"
+                  Expect.equal parsed.host (Some "ds1.example.com") "host"
+                  Expect.equal parsed.port (Some 389) "port"
+                  Expect.equal parsed.dn (Some "dc=example,dc=com") "dn"
+              }
+
+              test "parseLdapUrl handles ldaps and empty host" {
+                  let ssl = parseLdapUrl "ldaps://secure.example.com/cn=x" |> expectOk
+                  Expect.equal ssl.schemeIsSsl true "ldaps"
+                  Expect.equal ssl.host (Some "secure.example.com") "host"
+                  Expect.isNone ssl.port "default port deferred"
+                  let noHost = parseLdapUrl "ldap:///DC=example,DC=com" |> expectOk
+                  Expect.isNone noHost.host "empty host"
+                  Expect.equal noHost.dn (Some "DC=example,DC=com") "dn"
               }
 
               test "SearchResultStatus.FromCode covers the codes Searcher surfaces" {

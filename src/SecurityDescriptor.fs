@@ -5,22 +5,7 @@ module SecurityDescriptor =
     
     open LDAPConstants
 
-    ///
-    /// Decode an LDAP SID byte array into its human-readable string form (e.g. "S-1-5-21-...").
-    ///
-    /// Per Microsoft's SID binary layout (MS-DTYP §2.4):
-    ///   Offset  Size  Field
-    ///   0       1     Revision (typically 1)
-    ///   1       1     SubAuthority count
-    ///   2       6     Identifier Authority (big-endian, little-endian byte at offset 7 is masked)
-    ///   8       4×N   SubAuthorities (each a little-endian DWORD)
-    ///
-    /// The string representation is: S-Revision-IdentifierAuthority-SubAuthority1-SubAuthority2-...
-    ///
-    /// Identifier Authority is assembled from its 6 big-endian bytes into a single integer;
-    /// the low byte (offset 7) is masked with 0xFF to avoid sign-extension from int32 promotion.
-    /// SubAuthorities are read as little-endian uint32 values starting at offset 8.
-    /// 
+
     let internal decodeSidFromBytes bytes =
         match Array.length bytes with
         | len when len < 8 ->
@@ -58,8 +43,10 @@ module SecurityDescriptor =
         |> networkSids.TryFind
 
 
+    ///
     /// Resolve a SID string to a human-readable name.
     /// Checks well-known SIDs first, then network SIDs by RID, falls back to raw SID.
+    /// 
     let private matchKnownSids sid =
         match lookupWellKnownSid sid, lookupNetworkSid sid with
         | Some name, _ -> name
@@ -98,6 +85,7 @@ module SecurityDescriptor =
             curOffset + 8
 
 
+    ///
     /// Parse a single ACE entry: extract SID string and access mask.
     let private parseAceEntry bytes curOffset aceSize =
         let sidOffset = computeSidOffset bytes curOffset
@@ -118,12 +106,15 @@ module SecurityDescriptor =
         $"{matchKnownSids sid}--{getAccessFlags accessMask}"
 
 
+    ///
     /// Process one ACE: parse, format, and advance to the next.
     let private processAce bytes acc i offset aceCount =
         let aceSize = readAceSize bytes offset
         let formatted = parseAceEntry bytes offset aceSize ||> formatAceEntry
         formatted :: acc, i + 1, getNextAceOffset offset aceSize
 
+    
+    ///
     /// Walk all ACEs in the ACL, accumulating formatted permission strings.
     let private parseAceList bytes aceCount aclStart =
         let rec loop acc i offset =
@@ -133,6 +124,7 @@ module SecurityDescriptor =
                 let acc, i, offset = processAce bytes acc i offset aceCount
                 loop acc i offset
         loop [] 0 aclStart
+
 
     ///
     /// Decode an NT Security Descriptor byte array into a list of human-readable

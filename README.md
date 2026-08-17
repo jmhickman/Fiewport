@@ -4,8 +4,7 @@
 
 Fiewport is a library intended for assisting pentesters with enumerating and manipulating information from Microsoft Active Directory environments.
 
-~~> ⚠️ Fiewport currently runs only on Windows hosts, due to limitations in Microsoft's support of LDAP authentication mechanisms on other platforms~~
-Fiewport now runs natively on Linux and Windows hosts, as well as optionally supporting LDAPS.
+Under the hood, Fiewport speaks LDAP itself: it ships its own wire-protocol implementation, performing BER/TLV encoding and decoding of search requests, results, referrals, and paging, rather than leaning on an external LDAP client. Authentication is handled by the [Fauli](https://github.com/jmhickman/Fauli) library, which performs the Kerberos and NTLM SASL binds. This combination lets Fiewport run natively on both Linux and Windows. It also supports LDAPS.
 
 ### Scripts
 
@@ -151,6 +150,7 @@ getForestDomains
 getForestGlobalCatalogs
 getForestTrusts
 getDomainSID
+getPasswordPolicy
 
 ```
 
@@ -412,7 +412,7 @@ Serializer.deserializeFromDisk """C:\path\to\bin\DC=sevenkingdoms,DC=local-GetUs
 * ~~Automatic GPO resolution: GPOs are tracked by their GUID. PowerView and others resolve these to human-names automatically (more or less). Planned.~~ Partially fixed — gPCMachineExtensionNames and gPCUserExtensionNames GUIDs are now resolved to human-readable names via a lookup table.
 * Forced color: `PrettyPrinter` enforces color, which isn't completely compatible or always desirable. I'll provide a no-color option around the time that file export is added.
 * ~~No file operations: Speaking of file export, there isn't any. Of course, these are .fsx files and `System.IO` is an import away. Planned.~~ Covered by serialization above.
-* ~~No caching controls: The underlying LDAP searcher supports caching results. However, the way Fiewport disposes of searchers means this setting isn't relevant. I think the use of `Tee`s allows for most of the benefits of caching.~~ Moving to `S.DS.P` removed this optionality, but the addition of serializing the results covers it. 
+* ~~No caching controls: The underlying LDAP searcher supports caching results. However, the way Fiewport disposes of searchers means this setting isn't relevant. I think the use of `Tee`s allows for most of the benefits of caching.~~ Fiewport no longer wraps a platform LDAP client (the old `System.Directory.Protocols`-based caching option is gone with it), but the addition of serializing the results covers it.
 * ~~nuget: No nuget package yet. Planned once churn is way down.~~ Live at nuget.org
 * Feature-parity with Powerview: Likely will never happen. Powerview includes 'offensive' capabilities, but Fiewport is intended to be purely idempotent and safe to run. For the rest, between configs and `Filter`, there shouldn't be anything major that Powerview can do that Fiewport can't.
 

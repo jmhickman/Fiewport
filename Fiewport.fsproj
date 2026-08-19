@@ -4,7 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>0.2.0</Version>
+        <Version>2026.8.16</Version>
         <Authors>jmhickman</Authors>
         <Description>Library for Active Directory enumeration</Description>
         <Copyright>2026</Copyright>
@@ -35,12 +35,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="../Fauli/Fauli.fsproj"/>
       <PackageReference Include="EluciusFTW.SpectreCoff" Version="0.54.7" />
-      <PackageReference Include="Fauli" Version="2026.8.13" />
+      <PackageReference Include="Fauli" Version="2026.8.16" />
       <PackageReference Include="MessagePack" Version="3.1.8" />
       <PackageReference Include="MessagePack.FSharpExtensions" Version="4.0.0" />
-
       <PackageReference Update="FSharp.Core" Version="9.0.201" />
     </ItemGroup>
 

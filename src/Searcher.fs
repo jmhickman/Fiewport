@@ -526,3 +526,87 @@ module Searcher =
         searchWith GetDefaultPasswordPolicy
                    (fun d -> {d with filter = $"(objectClass=domain)"; scope = SearchScope.Base; properties = passwordPolicyProperties})
                    configs
+
+
+    ///
+    /// <summary>
+    /// Connects to an AD and retrieves a single group by name using the filter
+    /// <code>(&amp;(objectCategory=group)(|(sAMAccountName=&lt;name&gt;)(cn=&lt;name&gt;)(name=&lt;name&gt;)))</code>
+    /// Returns the full attribute set for matching group objects (subject to
+    /// <c>properties</c> on the config). User-supplied <c>filter</c> is ignored.
+    /// </summary>
+    ///
+    let getGroup (groupName: string) (configs: SearcherConfig list) =
+        searchWith GetGroup
+                   (fun d ->
+                       { d with
+                           filter = $"""(&(objectCategory=group)(|(sAMAccountName={groupName})(cn={groupName})(name={groupName})))""" })
+                   configs
+
+
+    ///
+    /// LDAP filter matching computers with any legacy Microsoft LAPS or Windows LAPS
+    /// password / expiration attribute present.
+    ///
+    let private anyLapsComputerFilter =
+        """(&(objectCategory=computer)(|(ms-mcs-admpwd=*)(ms-mcs-admpwdexpirationtime=*)(msLAPS-Password=*)(msLAPS-EncryptedPassword=*)(msLAPS-PasswordExpirationTime=*)(msLAPS-EncryptedDSRMPassword=*)))"""
+
+
+    ///
+    /// Identity plus both LAPS schema attribute sets (legacy MCS + Windows LAPS).
+    ///
+    let private lapsAttributeProperties =
+        [| "cn"
+           "name"
+           "dnshostname"
+           "distinguishedname"
+           "ms-mcs-admpwd"
+           "ms-mcs-admpwdexpirationtime"
+           "msLAPS-Password"
+           "msLAPS-EncryptedPassword"
+           "msLAPS-PasswordExpirationTime"
+           "msLAPS-EncryptedPasswordHistory"
+           "msLAPS-EncryptedDSRMPassword"
+           "msLAPS-EncryptedDSRMPasswordHistory"
+           "msLAPS-CurrentPasswordVersion" |]
+
+
+    ///
+    /// <summary>
+    /// Connects to an AD and retrieves computers managed by either legacy Microsoft LAPS
+    /// or Windows LAPS. Uses a single OR filter over both schema families:
+    /// <code>
+    /// (&amp;(objectCategory=computer)
+    ///   (|(ms-mcs-admpwd=*)(ms-mcs-admpwdexpirationtime=*)
+    ///     (msLAPS-Password=*)(msLAPS-EncryptedPassword=*)
+    ///     (msLAPS-PasswordExpirationTime=*)(msLAPS-EncryptedDSRMPassword=*)))
+    /// </code>
+    /// Requests identity attributes plus both attribute sets. Cleartext may appear under
+    /// <c>ms-mcs-admpwd</c> or <c>msLAPS-Password</c> when readable; encrypted Windows LAPS
+    /// values are binary and not decrypted by Fiewport. User-supplied filter is ignored.
+    /// </summary>
+    ///
+    let getLaps (configs: SearcherConfig list) =
+        searchWith GetLaps
+                   (fun d ->
+                       { d with
+                           filter = anyLapsComputerFilter
+                           properties = lapsAttributeProperties })
+                   configs
+
+
+    ///
+    /// <summary>
+    /// Same computer set as <c>getLaps</c> (legacy + Windows LAPS), plus
+    /// <c>nTSecurityDescriptor</c> for ACL analysis (LAPSToolkit-style rights enumeration).
+    /// Decoded ACEs appear under <c>ntsecuritydescriptor</c> after the data handlers run.
+    /// User-supplied filter is ignored.
+    /// </summary>
+    ///
+    let lapsRights (configs: SearcherConfig list) =
+        searchWith GetLapsRights
+                   (fun d ->
+                       { d with
+                           filter = anyLapsComputerFilter
+                           properties = Array.append lapsAttributeProperties [| "ntsecuritydescriptor" |] })
+                   configs

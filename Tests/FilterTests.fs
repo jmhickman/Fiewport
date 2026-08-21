@@ -44,4 +44,48 @@ module FilterTests =
                   { let input = [ TestData.adminUser; TestData.regularUser ]
                     let actual = Filter.attributePresent "adminCount" input |> Filter.attributeIsValue "cn" "Administrator"
                     Expect.equal ((List.head actual).ldapData |> List.length) 1 "adminUser passes both"
-                    Expect.equal ((List.item 1 actual).ldapData |> List.length) 0 "regularUser filtered out" } ]
+                    Expect.equal ((List.item 1 actual).ldapData |> List.length) 0 "regularUser filtered out" }
+              test "showMany keeps only listed attributes"
+                  { let input = [ TestData.adminUser ]
+                    let actual = Filter.showMany [| "cn"; "adminCount" |] input
+                    let map = (List.head actual).ldapData |> List.head
+                    Expect.isTrue (map.ContainsKey "cn") "cn kept"
+                    Expect.isTrue (map.ContainsKey "adminCount") "adminCount kept"
+                    Expect.isFalse (map.ContainsKey "sAMAccountName") "sAMAccountName dropped"
+                    Expect.equal map.Count 2 "only two keys" }
+              test "showMany is case-insensitive on attribute names"
+                  { let input = [ TestData.adminUser ]
+                    let actual = Filter.showMany [| "CN"; "ADMINCOUNT" |] input
+                    let map = (List.head actual).ldapData |> List.head
+                    Expect.isTrue (map.ContainsKey "cn") "cn kept via case-insensitive match"
+                    Expect.isTrue (map.ContainsKey "adminCount") "adminCount kept" }
+              test "showMany accepts AttributePresets.terse"
+                  { let rich =
+                        TestData.mkResult GetUsers TestData.defaultLdapDetails
+                            (TestData.mkMap
+                                [ "cn", ["x"]
+                                  "name", ["x"]
+                                  "samaccountname", ["x"]
+                                  "distinguishedname", ["CN=x"]
+                                  "objectclass", ["user"]
+                                  "objectcategory", ["person"]
+                                  "mail", ["x@y.z"]
+                                  "description", ["noise"] ])
+                    let actual = Filter.showMany AttributePresets.terse [ rich ]
+                    let map = (List.head actual).ldapData |> List.head
+                    Expect.isFalse (map.ContainsKey "mail") "mail not in terse"
+                    Expect.isFalse (map.ContainsKey "description") "description not in terse"
+                    Expect.isTrue (map.ContainsKey "cn") "cn in terse" }
+              test "attributeValueContains matches any value substring"
+                  { let input = [ TestData.adminUser; TestData.regularUser ]
+                    let actual = Filter.attributeValueContains "Market" input
+                    Expect.equal ((List.head actual).ldapData |> List.length) 0 "admin has no Marketing"
+                    Expect.equal ((List.item 1 actual).ldapData |> List.length) 1 "regularUser department Marketing" }
+              test "attributeValueContains is case-insensitive"
+                  { let input = [ TestData.regularUser ]
+                    let actual = Filter.attributeValueContains "ebony.kelly@ad-lab.com" input
+                    Expect.equal ((List.head actual).ldapData |> List.length) 1 "mail matched ignore case" }
+              test "attributeValueContains no match yields empty ldapData"
+                  { let input = [ TestData.adminUser ]
+                    let actual = Filter.attributeValueContains "zzznomatch" input
+                    Expect.equal ((List.head actual).ldapData |> List.length) 0 "no hit" } ]

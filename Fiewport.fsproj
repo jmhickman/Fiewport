@@ -19,6 +19,7 @@
         <Content Include="LICENSE" />
         <Compile Include="src\AssemblyInfo.fs"/>
         <Compile Include="src\Types.fs" />
+        <Compile Include="src\AttributePresets.fs" />
         <Compile Include="src\FileOperations.fs" />
         <Compile Include="src\FauliAuth.fs" />
         <Compile Include="src\LdapWire.fs" />

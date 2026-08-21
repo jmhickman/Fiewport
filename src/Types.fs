@@ -114,6 +114,9 @@ module Types =
         | [<Key(30)>] GetForestTrusts
         | [<Key(31)>] GetDomainSID
         | [<Key(32)>] GetDefaultPasswordPolicy
+        | [<Key(33)>] GetGroup
+        | [<Key(34)>] GetLaps
+        | [<Key(35)>] GetLapsRights
     
     
     ///

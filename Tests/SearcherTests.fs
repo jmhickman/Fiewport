@@ -38,6 +38,20 @@ module SearcherTests =
                                 "lockoutthreshold"
                                 "lockoutduration"
                                 "lockoutobservationwindow" |]}
+    let private tGetGroup (groupName: string) d =
+        { d with filter = $"""(&(objectCategory=group)(|(sAMAccountName={groupName})(cn={groupName})(name={groupName})))""" }
+    let private anyLapsComputerFilter =
+        """(&(objectCategory=computer)(|(ms-mcs-admpwd=*)(ms-mcs-admpwdexpirationtime=*)(msLAPS-Password=*)(msLAPS-EncryptedPassword=*)(msLAPS-PasswordExpirationTime=*)(msLAPS-EncryptedDSRMPassword=*)))"""
+    let private lapsAttributeProperties =
+        [| "cn"; "name"; "dnshostname"; "distinguishedname"
+           "ms-mcs-admpwd"; "ms-mcs-admpwdexpirationtime"
+           "msLAPS-Password"; "msLAPS-EncryptedPassword"; "msLAPS-PasswordExpirationTime"
+           "msLAPS-EncryptedPasswordHistory"; "msLAPS-EncryptedDSRMPassword"
+           "msLAPS-EncryptedDSRMPasswordHistory"; "msLAPS-CurrentPasswordVersion" |]
+    let private tGetLaps d =
+        { d with filter = anyLapsComputerFilter; properties = lapsAttributeProperties }
+    let private tLapsRights d =
+        { d with filter = anyLapsComputerFilter; properties = Array.append lapsAttributeProperties [| "ntsecuritydescriptor" |] }
 
     // ── Test configs ─────────────────────────────────────────────────
 
@@ -128,4 +142,22 @@ module SearcherTests =
                       "requests all password policy properties" }
               test "getPasswordPolicy ignores user-supplied filter"
                 { let result = transform tGetPasswordPolicy (configWithFilter "(cn=x)")
-                  Expect.equal result.filter "(objectClass=domain)" "filter unchanged" }]
+                  Expect.equal result.filter "(objectClass=domain)" "filter unchanged" }
+              test "getGroup builds name OR filter"
+                { let result = transform (tGetGroup "Security Interns") baseConfig
+                  Expect.equal result.filter "(&(objectCategory=group)(|(sAMAccountName=Security Interns)(cn=Security Interns)(name=Security Interns)))" "group name filter" }
+              test "getGroup ignores config.filter"
+                { let result = transform (tGetGroup "Domain Admins") (configWithFilter "(cn=x)")
+                  Expect.equal result.filter "(&(objectCategory=group)(|(sAMAccountName=Domain Admins)(cn=Domain Admins)(name=Domain Admins)))" "name wins" }
+              test "getLaps ORs legacy MCS and Windows LAPS attributes"
+                { let result = transform tGetLaps baseConfig
+                  Expect.equal result.filter anyLapsComputerFilter "combined LAPS filter"
+                  Expect.isTrue (result.properties |> Array.contains "ms-mcs-admpwd") "legacy password"
+                  Expect.isTrue (result.properties |> Array.contains "msLAPS-Password") "windows cleartext"
+                  Expect.isTrue (result.properties |> Array.contains "msLAPS-EncryptedPassword") "windows encrypted" }
+              test "lapsRights uses same LAPS filter and requests nTSecurityDescriptor"
+                { let result = transform tLapsRights baseConfig
+                  Expect.equal result.filter anyLapsComputerFilter "combined LAPS filter"
+                  Expect.isTrue (result.properties |> Array.contains "ntsecuritydescriptor") "requests ntsd"
+                  Expect.isTrue (result.properties |> Array.contains "msLAPS-EncryptedPassword") "windows encrypted"
+                  Expect.isTrue (result.properties |> Array.contains "ms-mcs-admpwd") "legacy password" } ]

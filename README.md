@@ -151,8 +151,13 @@ getForestGlobalCatalogs
 getForestTrusts
 getDomainSID
 getPasswordPolicy
+getGroup
+getLaps
+lapsRights
 
 ```
+
+Prebuilt attribute request lists live in `AttributePresets` (`terse`, `standard`, `verbose`) for `ldapDetails.properties` or `Filter.showMany`. Run `PrettyPrinter.help ()` for a console quick-reference (Searchers, presets, config notes) when editing scripts without a language server.
 
 In addition to the `Searcher`, Fiewport exposes `Filter`s, `Mold`s `Tee`s and a `Serialize` function.
 

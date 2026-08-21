@@ -2,7 +2,7 @@ namespace Fiewport
 
 module SecurityDescriptor =
     open System
-    
+
     open LDAPConstants
 
 
@@ -23,10 +23,10 @@ module SecurityDescriptor =
                 |> int32
 
             let subAuthorities =
-                [for i in 0 .. subAuthCount - 1 do
+                [ for i in 0 .. subAuthCount - 1 do
                     let offset = 8 + (i * 4)
                     if offset + 4 <= Array.length bytes then
-                        yield sprintf "%u" (BitConverter.ToUInt32(bytes, offset))]
+                        yield sprintf "%u" (BitConverter.ToUInt32(bytes, offset)) ]
 
             match subAuthorities with
             | [] -> $"""S-{revision}-{authority}"""
@@ -46,7 +46,7 @@ module SecurityDescriptor =
     ///
     /// Resolve a SID string to a human-readable name.
     /// Checks well-known SIDs first, then network SIDs by RID, falls back to raw SID.
-    /// 
+    ///
     let private matchKnownSids sid =
         match lookupWellKnownSid sid, lookupNetworkSid sid with
         | Some name, _ -> name
@@ -62,36 +62,67 @@ module SecurityDescriptor =
 
 
     ///
-    /// Compute where the SID begins inside an ACE.
-    /// Standard ACEs: SID starts at offset + 8.
-    /// Object ACEs: 8-byte header + 4-byte AceFlags DWORD, then optional GUIDs (16 bytes each), then SID.
-    /// 
-    let private computeSidOffset (bytes: byte array) curOffset =
-        let aceType = bytes.[curOffset]
-        match aceType with
-        | t when t = accessAllowedObjectAce || t = accessDeniedObjectAce ->
-            let aceFlagsOffset = curOffset + 8
-            let objFlags = BitConverter.ToInt32(bytes, aceFlagsOffset)
-            let addGuidIfPresent flag acc =
-                match objFlags &&& flag <> 0 with
-                | true -> acc + 16
-                | false -> acc
-            let extraBytes =
-                0 
-                |> addGuidIfPresent aceObjectTypePresent 
-                |> addGuidIfPresent aceInheritedObjectTypePresent
-            aceFlagsOffset + 4 + extraBytes
-        | _ ->
-            curOffset + 8
+    /// Read a 16-byte GUID at offset, if in bounds.
+    ///
+    let private tryReadGuid (bytes: byte array) offset =
+        match offset + 16 <= Array.length bytes with
+        | true -> Guid(Array.sub bytes offset 16) |> Some
+        | false -> None
 
 
     ///
-    /// Parse a single ACE entry: extract SID string and access mask.
-    let private parseAceEntry bytes curOffset aceSize =
-        let sidOffset = computeSidOffset bytes curOffset
-        let sid = decodeSidFromBytes (Array.sub bytes sidOffset (aceSize - (sidOffset - curOffset)))
+    /// Object ACE layout after the 8-byte ACE header:
+    /// Flags DWORD, optional ObjectType GUID, optional InheritedObjectType GUID, then SID.
+    /// Returns SID start offset and optional ObjectType.
+    ///
+    let private objectAceSidOffsetAndType (bytes: byte array) curOffset =
+        let flagsOffset = curOffset + 8
+        let objFlags = BitConverter.ToInt32(bytes, flagsOffset)
+        let afterFlags = flagsOffset + 4
+
+        let objectType, afterObjectType =
+            match objFlags &&& aceObjectTypePresent <> 0 with
+            | true -> tryReadGuid bytes afterFlags, afterFlags + 16
+            | false -> None, afterFlags
+
+        let sidOffset =
+            match objFlags &&& aceInheritedObjectTypePresent <> 0 with
+            | true -> afterObjectType + 16
+            | false -> afterObjectType
+
+        sidOffset, objectType
+
+
+    ///
+    /// Compute where the SID begins inside an ACE, and any ObjectType GUID.
+    /// Standard ACEs: SID at offset + 8, no ObjectType.
+    ///
+    let private computeSidOffsetAndObjectType (bytes: byte array) curOffset =
+        let aceType = bytes[curOffset]
+        match aceType with
+        | t when t = accessAllowedObjectAce || t = accessDeniedObjectAce ->
+            objectAceSidOffsetAndType bytes curOffset
+        | _ ->
+            curOffset + 8, None
+
+
+    ///
+    /// Parse a single ACE: SID, access mask, optional ObjectType GUID, allow vs deny.
+    ///
+    let private parseAceEntry (bytes: byte array) (curOffset: int) (aceSize: int) =
+        let aceType = bytes[curOffset]
+        let sidOffset, objectType = computeSidOffsetAndObjectType bytes curOffset
+        let sidLength = aceSize - (sidOffset - curOffset)
+        let sid =
+            match sidLength > 0 with
+            | true -> decodeSidFromBytes (Array.sub bytes sidOffset sidLength)
+            | false -> "INVALID SID"
         let accessMask = BitConverter.ToInt32(bytes, curOffset + 4)
-        sid, accessMask
+        let isAllow =
+            match aceType with
+            | t when t = accessDeniedAce || t = accessDeniedObjectAce -> false
+            | _ -> true
+        sid, accessMask, objectType, isAllow
 
 
     let private readAceSize (bytes: byte array) offset =
@@ -102,21 +133,43 @@ module SecurityDescriptor =
         curOffset + (aceSize &&& ~~~3)
 
 
-    let private formatAceEntry sid accessMask =
-        $"{matchKnownSids sid}--{getAccessFlags accessMask}"
+    ///
+    /// Allow/deny phrase that replaces the old "--" separator.
+    ///
+    let private dispositionPhrase isAllow =
+        match isAllow with
+        | true -> "allowed to"
+        | false -> "is denied"
+
+
+    ///
+    /// Format one ACE as:
+    ///   Principal (allowed to|is denied) Flags
+    ///   Principal (allowed to|is denied) Flags [ObjectTypeName]
+    ///
+    let private formatAceEntry sid accessMask objectType isAllow =
+        let principal = matchKnownSids sid
+        let flags = getAccessFlags accessMask
+        let core = $"{principal} ({dispositionPhrase isAllow}) {flags}"
+        match objectType with
+        | None -> core
+        | Some guid -> $"{core} [{resolveSchemaOrRightsGuid guid}]"
 
 
     ///
     /// Process one ACE: parse, format, and advance to the next.
-    let private processAce bytes acc i offset aceCount =
+    ///
+    let private processAce (bytes: byte array) acc i offset aceCount =
         let aceSize = readAceSize bytes offset
-        let formatted = parseAceEntry bytes offset aceSize ||> formatAceEntry
+        let sid, accessMask, objectType, isAllow = parseAceEntry bytes offset aceSize
+        let formatted = formatAceEntry sid accessMask objectType isAllow
         formatted :: acc, i + 1, getNextAceOffset offset aceSize
 
-    
+
     ///
     /// Walk all ACEs in the ACL, accumulating formatted permission strings.
-    let private parseAceList bytes aceCount aclStart =
+    ///
+    let private parseAceList (bytes: byte array) aceCount aclStart =
         let rec loop acc i offset =
             match i >= aceCount with
             | true -> acc
@@ -128,13 +181,16 @@ module SecurityDescriptor =
 
     ///
     /// Decode an NT Security Descriptor byte array into a list of human-readable
-    /// permission strings in the form "Principal--Flags".
+    /// permission strings:
+    ///   "Principal (allowed to) Flags"
+    ///   "Principal (is denied) Flags [ObjectType]"
+    /// when the ACE is object-scoped.
     ///
     /// Cross-platform security descriptor + ACL parser.
     /// SD header: Revision(1) + Byte2(1) + Control(2) + Owner(4) + Group(4) + SACL(4) + DACL(4) = 20 bytes
     /// ACL header: AclRevision(1) + Unused(1) + Size(2) + AceCount(2) + Unused(2) = 8 bytes
-    /// 
-    let internal decodeNtSecurityDescriptor bytes =
+    ///
+    let internal decodeNtSecurityDescriptor (bytes: byte array) =
         let daclOffset = BitConverter.ToInt32(bytes, 16)
         match daclOffset = 0 with
         | true -> []

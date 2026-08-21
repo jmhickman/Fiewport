@@ -49,6 +49,12 @@ module SecurityDescriptorTests =
         bytes
 
 
+    let private buildStandardDenyAce (accessMask: int) (sid: byte[]) =
+        let bytes = buildStandardAce accessMask sid
+        bytes.[0] <- 0x01uy
+        bytes
+
+
     type private ObjectAceParams =
         { objectType: byte[] option
           inheritedObjectType: byte[] option }
@@ -142,8 +148,19 @@ module SecurityDescriptorTests =
                   let sd = buildSecurityDescriptor (Some acl)
                   let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                   Expect.equal (List.length result) 1 "should have 1 ACE entry"
-                  Expect.stringContains (List.head result) "Local System" "should resolve Local System" }  
-              
+                  Expect.stringContains (List.head result) "Local System" "should resolve Local System"
+                  Expect.stringContains (List.head result) "(allowed to)" "allow disposition" }
+
+              test "decodeNtSecurityDescriptor: deny ACE uses is denied phrase" 
+                { let ace = buildStandardDenyAce 0x00000001 sidAuthUsers
+                  let acl = buildAcl [ace]
+                  let sd = buildSecurityDescriptor (Some acl)
+                  let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
+                  Expect.equal (List.length result) 1 "one ACE"
+                  Expect.stringContains (List.head result) "Authenticated Users" "principal"
+                  Expect.stringContains (List.head result) "(is denied)" "deny disposition"
+                  Expect.isFalse ((List.head result).Contains "(allowed to)") "not allow" }
+
               test "decodeNtSecurityDescriptor: multiple standard ACEs" 
                 { let ace1 = buildStandardAce 0x0013019F sidLocalSystem
                   let ace2 = buildStandardAce 0x000200A4 sidAuthUsers
@@ -161,17 +178,40 @@ module SecurityDescriptorTests =
                   Expect.isEmpty result "should return empty list" }  
               
               test "decodeNtSecurityDescriptor: Object ACE with ObjectType present" 
-                { let objectType = Array.zeroCreate<byte> 16
+                { // User-Force-Change-Password rights GUID (little-endian Guid bytes)
+                  let forceChangePwd = Guid("00299570-246d-11d0-a768-00aa006e0529").ToByteArray()
                   let ace =
                       buildObjectAce 0x00000100 sidEveryone
-                          { objectType = Some objectType; inheritedObjectType = None }
+                          { objectType = Some forceChangePwd; inheritedObjectType = None }
                   let acl = buildAcl [ace]
                   let sd = buildSecurityDescriptor (Some acl)
                   let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
                   Expect.equal (List.length result) 1 "should have 1 ACE entry"
                   Expect.stringContains (List.head result) "World" "should resolve S-1-1 to World"
-                  Expect.stringContains (List.head result) "ExtendedRight" "should contain ExtendedRight" }  
-              
+                  Expect.stringContains (List.head result) "ExtendedRight" "should contain ExtendedRight"
+                  Expect.stringContains (List.head result) "User-Force-Change-Password" "ObjectType resolved" }
+
+              test "decodeNtSecurityDescriptor: Object ACE ObjectType falls back to GUID string" 
+                { let unknown = Guid("11111111-2222-3333-4444-555555555555").ToByteArray()
+                  let ace =
+                      buildObjectAce 0x00000100 sidSelf
+                          { objectType = Some unknown; inheritedObjectType = None }
+                  let acl = buildAcl [ace]
+                  let sd = buildSecurityDescriptor (Some acl)
+                  let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
+                  Expect.equal (List.length result) 1 "one ACE"
+                  Expect.stringContains (List.head result) "11111111-2222-3333-4444-555555555555" "unknown GUID printed" }
+
+              test "decodeNtSecurityDescriptor: legacy LAPS AdmPwd ObjectType resolves" 
+                { let admPwd = Guid("4c9928d7-d725-4fa6-a109-aba3ad8790e5").ToByteArray()
+                  let ace =
+                      buildObjectAce 0x00000010 sidAuthUsers
+                          { objectType = Some admPwd; inheritedObjectType = None }
+                  let acl = buildAcl [ace]
+                  let sd = buildSecurityDescriptor (Some acl)
+                  let result = SecurityDescriptor.decodeNtSecurityDescriptor sd
+                  Expect.stringContains (List.head result) "ms-Mcs-AdmPwd" "LAPS attr name" }
+
               test "decodeNtSecurityDescriptor: Object ACE with both GUIDs present" 
                 { let objectType = Array.zeroCreate<byte> 16
                   let inheritedType = Array.zeroCreate<byte> 16

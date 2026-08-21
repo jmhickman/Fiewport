@@ -9,22 +9,42 @@ module PrettyPrinter =
 
     ///
     /// Format a single attribute value node. Values under ntsecuritydescriptor use
-    /// Principal--Flags layout: principal is bright + bold, flags stay plain.
+    /// "Principal (allowed to|is denied) Flags [ObjectType]": principal is bright + bold,
+    /// parentheses around the disposition are bold, disposition text and flags stay plain.
     ///
+    let private ntsdDispositionNode principal disposition rest =
+        node
+            ([ MCD (Color.Yellow, [ Decoration.Bold ], principal)
+               MCD (Color.White, [ Decoration.Bold ], " (")
+               MC (Color.White, disposition)
+               MCD (Color.White, [ Decoration.Bold ], ") ")
+               MC (Color.White, rest) ]
+             |> Many)
+            []
+
+
+    let private formatNtsdValue (value: string) =
+        let trySplit disposition =
+            let marker = $" ({disposition}) "
+            match value.IndexOf(marker, StringComparison.Ordinal) with
+            | -1 -> None
+            | idx ->
+                let principal = value.Substring(0, idx)
+                let rest = value.Substring(idx + marker.Length)
+                Some (principal, disposition, rest)
+
+        match trySplit "allowed to" with
+        | Some (principal, disposition, rest) -> ntsdDispositionNode principal disposition rest
+        | None ->
+            match trySplit "is denied" with
+            | Some (principal, disposition, rest) -> ntsdDispositionNode principal disposition rest
+            | None -> node ([ MC (Color.White, value) ] |> Many) []
+
+
     let private formatAttributeValue (attrKey: string) (value: string) =
         match attrKey.Equals("ntsecuritydescriptor", StringComparison.OrdinalIgnoreCase) with
-        | false ->
-            node ([ MC (Color.White, value) ] |> Many) []
-        | true ->
-            match value.Split([| "--" |], 2, StringSplitOptions.None) with
-            | [| principal; flags |] ->
-                node
-                    ([ MCD (Color.Yellow, [ Decoration.Bold ], principal)
-                       MC (Color.White, $"--{flags}") ]
-                     |> Many)
-                    []
-            | _ ->
-                node ([ MC (Color.White, value) ] |> Many) []
+        | false -> node ([ MC (Color.White, value) ] |> Many) []
+        | true -> formatNtsdValue value
 
 
     let private printFormatter (map: LDAPEntryData) : TreeNode list =
